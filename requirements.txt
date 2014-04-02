@@ -1,12 +1,12 @@
 Fabric==1.8.0
 IPy==0.81
-MySQL-python==1.2.4
+MySQL-python==1.2.5
 SQLAlchemy==0.8.3
 argparse==1.2.1
 boto==2.27.0
 docopt==0.6.1
 ecdsa==0.10
-invtool==0.1.0
+-e git+git://github.com/uberj/inv-tool.git@4.4#egg=invtool
 iso8601==0.1.10
 paramiko==1.12.0
 pycrypto==2.6.1
