@@ -8,6 +8,7 @@ import time
 from collections import defaultdict
 import os
 import logging
+import urllib2
 
 try:
     import simplejson as json
@@ -358,7 +359,7 @@ def do_request_spot_instance(region, moz_instance_type, price, ami,
             raise
 
 
-def aws_watch_pending(dburl, regions, builder_map, region_priorities,
+def aws_watch_pending(dburl, regions, allthethings, region_priorities,
                       spot_config, ondemand_config, dryrun,
                       instance_type_changes):
     # First find pending jobs in the db
@@ -381,15 +382,28 @@ def aws_watch_pending(dburl, regions, builder_map, region_priorities,
 
     # Map pending builder names to instance types
     for pending_buildername, brid in pending:
-        for buildername_exp, moz_instance_type in builder_map.items():
-            if re.match(buildername_exp, pending_buildername):
-                slaveset = get_allocated_slaves(pending_buildername)
-                log.debug("%s instance type %s slaveset %s", pending_buildername, moz_instance_type, slaveset)
-                to_create_spot[moz_instance_type, slaveset] += 1
-                break
-        else:
-            log.debug("%s has pending jobs, but no instance types defined",
-                      pending_buildername)
+        try:
+            slavepool = allthethings['builders'][pending_buildername]['slavepool']
+            slaves = allthethings['slavepools'][slavepool]
+            # Figure out instance type from slavepool
+            # XXX HACK XXX
+            slavetypes = ("bld-linux64", "try-linux64", "tst-linux32", "tst-linux64")
+            for t in slavetypes:
+                if slaves[0].startswith(t):
+                    moz_instance_type = t
+                    slaveset = get_allocated_slaves(pending_buildername)
+                    to_create_spot[moz_instance_type, slaveset] += 1
+                    log.debug("%s instance type %s slaveset %s", pending_buildername, moz_instance_type, slaveset)
+                    break
+            else:
+                moz_instance_type = None
+                #log.debug("%s has pending jobs, but couldn't determine slave type", pending_buildername)
+                continue
+        except:
+            log.exception("Couldn't handle pending request for %s", pending_buildername)
+            continue
+
+    return
 
     if not to_create_spot and not to_create_ondemand:
         log.debug("no pending jobs we can do anything about! all done!")
@@ -535,10 +549,16 @@ if __name__ == '__main__':
     config = json.load(args.config)
     secrets = json.load(args.secrets)
 
+    allthethings_url = config['allthethings_url']
+
+    # Try downloading all the things
+    log.info("Downloading %s", allthethings_url)
+    allthethings = json.load(urllib2.urlopen(allthethings_url))
+
     aws_watch_pending(
         dburl=secrets['db'],
         regions=args.regions,
-        builder_map=config['buildermap'],
+        allthethings=allthethings,
         region_priorities=config['region_priorities'],
         dryrun=args.dryrun,
         spot_config=config.get("spot"),
