@@ -7,7 +7,6 @@ import argparse
 import time
 from collections import defaultdict
 import logging
-import urllib2
 
 try:
     import simplejson as json
@@ -29,11 +28,12 @@ from cloudtools.aws.spot import get_spot_requests_for_moztype, \
 from cloudtools.jacuzzi import filter_instances_by_slaveset
 from cloudtools.aws.ami import get_ami
 from cloudtools.aws.vpc import get_avail_subnet
-from cloudtools.buildbot import find_pending, map_builders
+from cloudtools.buildbot import find_pending
 from cloudtools.aws.instance import create_block_device_mapping, \
     user_data_from_template, tag_ondemand_instance
 import cloudtools.graphite
 from cloudtools.log import add_syslog_handler
+from cloudtools.utils import get_json
 
 log = logging.getLogger()
 gr_log = cloudtools.graphite.get_graphite_logger()
@@ -498,7 +498,7 @@ def main():
 
     # Try downloading all the things
     log.info("Downloading %s", allthethings_url)
-    allthethings = json.load(urllib2.urlopen(allthethings_url))
+    allthethings = get_json(allthethings_url, "allthethings.json")
 
     aws_watch_pending(
         dburl=secrets['db'],
