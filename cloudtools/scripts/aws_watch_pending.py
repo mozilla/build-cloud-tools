@@ -319,8 +319,7 @@ def do_request_ondemand_instance(region, price, ami_id, instance_type, ssh_key,
 
 
 def aws_watch_pending(dburl, regions, allthethings, region_priorities,
-                      spot_config, ondemand_config, dryrun,
-                      instance_type_changes):
+                      spot_config, ondemand_config, dryrun):
     # First find pending jobs in the db
     pending = find_pending(dburl)
 
