@@ -3,28 +3,36 @@
     "us-east-1": {
         "type": "generic-server",
         "domain": "srv.releng.use1.mozilla.com",
-        "ami": "ami-ca783ba2",
+        "NOTE": "this is the wrong AMI - this is hvm-base",
+        "ami": "ami-6c92d204",
         "subnet_ids": ["subnet-173ff076", "subnet-1b20ef7a", "subnet-35a9835e", "subnet-0aa98361", "subnet-30a9835b", "subnet-33a98358", "subnet-8f21eeee", "subnet-8c20efed"],
         "security_group_ids": ["sg-31e8185e"],
-        "instance_type": "m3.medium",
+        "instance_type": "c3.xlarge",
         "disable_api_termination": true,
         "ssh_key": "aws-releng",
         "use_public_ip": true,
-        "instance_profile_name": "generic-server",
         "device_map": {
-            "/dev/sda1": {
-                "size": 15,
-                "instance_dev": "/dev/xvde1"
-            },
+            "/dev/xvda": {
+                "delete_on_termination": true,
+                "skip_resize": true,
+                "volume_type": "gp2",
+                "instance_dev": "/dev/xvda1"
+            },  
             "/dev/sdb": {
                 "ephemeral_name": "ephemeral0",
-                "instance_dev": "/dev/xvdf",
-                "delete_on_termination": false,
-                "skip_resize": true
+                "instance_dev": "/dev/xvdb",
+                "skip_resize": true,
+                "delete_on_termination": false
+            },
+            "/dev/sdc": {
+                "ephemeral_name": "ephemeral1",
+                "instance_dev": "/dev/xvdc",
+                "skip_resize": true,
+                "delete_on_termination": false
             }
         },
         "tags": {
-            "moz-type": "generic-server"
+            "moz-type": "server-linux64"
         }
     },
     "us-west-1": {
@@ -33,25 +41,32 @@
         "ami": "ami-ef471cdf",
         "subnet_ids": ["subnet-2f465b69", "subnet-39f02d5c", "subnet-30f02d55", "subnet-2a465b6c"],
         "security_group_ids": ["sg-932e33ff"],
-        "instance_type": "m3.medium",
+        "instance_type": "c3.xlarge",
         "disable_api_termination": true,
         "ssh_key": "aws-releng",
         "use_public_ip": true,
-        "instance_profile_name": "generic-server",
         "device_map": {
-            "/dev/sda1": {
-                "size": 15,
-                "instance_dev": "/dev/xvde1"
+            "/dev/xvda": {
+                "delete_on_termination": true,
+                "skip_resize": true,
+                "volume_type": "gp2",
+                "instance_dev": "/dev/xvda1"
             },
             "/dev/sdb": {
                 "ephemeral_name": "ephemeral0",
-                "instance_dev": "/dev/xvdf",
-                "delete_on_termination": false,
-                "skip_resize": true
+                "instance_dev": "/dev/xvdb",
+                "skip_resize": true,
+                "delete_on_termination": false
+            },
+            "/dev/sdc": {
+                "ephemeral_name": "ephemeral1",
+                "instance_dev": "/dev/xvdc",
+                "skip_resize": true,
+                "delete_on_termination": false
             }
         },
         "tags": {
-            "moz-type": "generic-server"
+            "moz-type": "server-linux64"
         }
     },
     "us-west-2": {
@@ -60,25 +75,32 @@
         "ami": "ami-ef471cdf",
         "subnet_ids": ["subnet-b948dad0", "subnet-ba48dad3", "subnet-ed464a99", "subnet-bf48dad6"],
         "security_group_ids": ["sg-932e33ff"],
-        "instance_type": "m3.medium",
+        "instance_type": "c3.xlarge",
         "disable_api_termination": true,
         "ssh_key": "aws-releng",
         "use_public_ip": true,
-        "instance_profile_name": "generic-server",
         "device_map": {
-            "/dev/sda1": {
-                "size": 15,
-                "instance_dev": "/dev/xvde1"
+            "/dev/xvda": {
+                "delete_on_termination": true,
+                "skip_resize": true,
+                "volume_type": "gp2",
+                "instance_dev": "/dev/xvda1"
             },
             "/dev/sdb": {
                 "ephemeral_name": "ephemeral0",
-                "instance_dev": "/dev/xvdf",
-                "delete_on_termination": false,
-                "skip_resize": true
+                "instance_dev": "/dev/xvdb",
+                "skip_resize": true,
+                "delete_on_termination": false
+            },
+            "/dev/sdc": {
+                "ephemeral_name": "ephemeral1",
+                "instance_dev": "/dev/xvdc",
+                "skip_resize": true,
+                "delete_on_termination": false
             }
         },
         "tags": {
-            "moz-type": "generic-server"
+            "moz-type": "server-linux64"
         }
     }
 }
