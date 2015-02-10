@@ -319,7 +319,7 @@ def do_request_ondemand_instance(region, price, ami_id, instance_type, ssh_key,
                                  moz_instance_type)
 
 
-def get_instancetype(allthethings, buildername):
+def get_instancetype(allthethings, buildername, slavetypes):
     """
     Returns the appropriate moz-type for this builder
     """
@@ -328,9 +328,6 @@ def get_instancetype(allthethings, buildername):
 
     slavepool = allthethings['builders'][buildername]['slavepool']
     slaves = allthethings['slavepools'][slavepool]
-    # Figure out instance type from slavepool
-    # XXX HACK XXX
-    slavetypes = ("bld-linux64", "try-linux64", "tst-linux32", "tst-linux64", "tst-emulator64")
     for t in slavetypes:
         if slaves[0].startswith(t):
             return t
@@ -349,6 +346,11 @@ def aws_watch_pending(dburl, regions, allthethings, ignore_builders, region_prio
     log.debug("processing %i pending jobs", len(pending))
     gr_log.add("pending", len(pending))
 
+    # Determine supported slavetypes
+    slavetypes = set(spot_config['rules'].keys())
+    slavetypes |= set(ondemand_config['limits']['global'].keys())
+    log.debug("known slavetypes: %s", slavetypes)
+
     # Mapping of (instance types, slaveset) to # of instances we want to
     # creates
     to_create_spot = defaultdict(int)
@@ -361,7 +363,7 @@ def aws_watch_pending(dburl, regions, allthethings, ignore_builders, region_prio
             continue
 
         try:
-            moz_instance_type = get_instancetype(allthethings, pending_buildername)
+            moz_instance_type = get_instancetype(allthethings, pending_buildername, slavetypes)
             if moz_instance_type:
                 slaveset = get_allocated_slaves(pending_buildername)
                 to_create_spot[moz_instance_type, slaveset] += 1
