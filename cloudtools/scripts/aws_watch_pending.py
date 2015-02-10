@@ -323,6 +323,9 @@ def get_instancetype(allthethings, buildername):
     """
     Returns the appropriate moz-type for this builder
     """
+    if buildername not in allthethings['builders']:
+        return None
+
     slavepool = allthethings['builders'][buildername]['slavepool']
     slaves = allthethings['slavepools'][slavepool]
     # Figure out instance type from slavepool
@@ -363,11 +366,9 @@ def aws_watch_pending(dburl, regions, allthethings, ignore_builders, region_prio
                 slaveset = get_allocated_slaves(pending_buildername)
                 to_create_spot[moz_instance_type, slaveset] += 1
                 log.debug("%s instance type %s slaveset %s", pending_buildername, moz_instance_type, slaveset)
-                break
             else:
                 moz_instance_type = None
-                #log.debug("%s has pending jobs, but couldn't determine slave type", pending_buildername)
-                continue
+                log.debug("%s has pending jobs, but couldn't determine slave type", pending_buildername)
         except:
             log.exception("Couldn't handle pending request for %s", pending_buildername)
             continue
