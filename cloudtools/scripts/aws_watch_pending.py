@@ -7,6 +7,7 @@ import argparse
 import time
 from collections import defaultdict
 import logging
+import re
 
 try:
     import simplejson as json
@@ -25,7 +26,7 @@ from cloudtools.aws import (get_aws_connection, aws_get_running_instances,
                             jacuzzi_suffix)
 from cloudtools.aws.spot import get_spot_requests_for_moztype, \
     usable_spot_choice, get_available_slave_name, get_spot_choices
-from cloudtools.jacuzzi import filter_instances_by_slaveset
+from cloudtools.jacuzzi import filter_instances_by_slaveset, get_allocated_slaves
 from cloudtools.aws.ami import get_ami
 from cloudtools.aws.vpc import get_avail_subnet
 from cloudtools.buildbot import find_pending
@@ -318,7 +319,21 @@ def do_request_ondemand_instance(region, price, ami_id, instance_type, ssh_key,
                                  moz_instance_type)
 
 
-def aws_watch_pending(dburl, regions, allthethings, region_priorities,
+def get_instancetype(allthethings, buildername):
+    """
+    Returns the appropriate moz-type for this builder
+    """
+    slavepool = allthethings['builders'][buildername]['slavepool']
+    slaves = allthethings['slavepools'][slavepool]
+    # Figure out instance type from slavepool
+    # XXX HACK XXX
+    slavetypes = ("bld-linux64", "try-linux64", "tst-linux32", "tst-linux64", "tst-emulator64")
+    for t in slavetypes:
+        if slaves[0].startswith(t):
+            return t
+
+
+def aws_watch_pending(dburl, regions, allthethings, ignore_builders, region_priorities,
                       spot_config, ondemand_config, dryrun):
     # First find pending jobs in the db
     pending = find_pending(dburl)
@@ -333,21 +348,22 @@ def aws_watch_pending(dburl, regions, allthethings, region_priorities,
 
     # Mapping of (instance types, slaveset) to # of instances we want to
     # creates
+    to_create_spot = defaultdict(int)
+
     # Map pending builder names to instance types
     for pending_buildername, brid in pending:
+        # Check to see if this builder is ignored first
+        if any(re.match(exp, pending_buildername) for exp in ignore_builders):
+            log.debug("ignoring %s", pending_buildername)
+            continue
+
         try:
-            slavepool = allthethings['builders'][pending_buildername]['slavepool']
-            slaves = allthethings['slavepools'][slavepool]
-            # Figure out instance type from slavepool
-            # XXX HACK XXX
-            slavetypes = ("bld-linux64", "try-linux64", "tst-linux32", "tst-linux64")
-            for t in slavetypes:
-                if slaves[0].startswith(t):
-                    moz_instance_type = t
-                    slaveset = get_allocated_slaves(pending_buildername)
-                    to_create_spot[moz_instance_type, slaveset] += 1
-                    log.debug("%s instance type %s slaveset %s", pending_buildername, moz_instance_type, slaveset)
-                    break
+            moz_instance_type = get_instancetype(allthethings, pending_buildername)
+            if moz_instance_type:
+                slaveset = get_allocated_slaves(pending_buildername)
+                to_create_spot[moz_instance_type, slaveset] += 1
+                log.debug("%s instance type %s slaveset %s", pending_buildername, moz_instance_type, slaveset)
+                break
             else:
                 moz_instance_type = None
                 #log.debug("%s has pending jobs, but couldn't determine slave type", pending_buildername)
@@ -356,14 +372,11 @@ def aws_watch_pending(dburl, regions, allthethings, region_priorities,
             log.exception("Couldn't handle pending request for %s", pending_buildername)
             continue
 
-    return
+    to_create_ondemand = defaultdict(int)
 
     if not to_create_spot and not to_create_ondemand:
         log.debug("no pending jobs we can do anything about! all done!")
         return
-
-    to_create_spot = pending_builder_map
-    to_create_ondemand = defaultdict(int)
 
     # For each moz_instance_type, slaveset, find how many are currently
     # running, and scale our count accordingly
@@ -504,6 +517,7 @@ def main():
         dburl=secrets['db'],
         regions=args.regions,
         allthethings=allthethings,
+        ignore_builders=config.get('ignore_builders', []),
         region_priorities=config['region_priorities'],
         dryrun=args.dryrun,
         spot_config=config.get("spot"),
