@@ -120,7 +120,7 @@ def example_data(request):
     return j
 
 
-@mock.patch("cloudtools.slavealloc.get_slaves_json")
+@mock.patch("cloudtools.slavealloc.get_json")
 def test_bld_spot(m, example_data):
     m.return_value = example_data
     slaves = get_classified_slaves(True)
@@ -128,7 +128,7 @@ def test_bld_spot(m, example_data):
                       'tst-emulator64': {'us-west-2': set(['slave-spot-3'])}}
 
 
-@mock.patch("cloudtools.slavealloc.get_slaves_json")
+@mock.patch("cloudtools.slavealloc.get_json")
 def test_bld_ondemand(m, example_data):
     m.return_value = example_data
     slaves = get_classified_slaves(False)
