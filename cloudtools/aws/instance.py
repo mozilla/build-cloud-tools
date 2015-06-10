@@ -4,6 +4,7 @@ import logging
 import time
 import random
 import StringIO
+import redo
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.networkinterface import NetworkInterfaceSpecification, \
     NetworkInterfaceCollection
@@ -12,7 +13,7 @@ from fabric.context_managers import cd
 from ..fabric import setup_fabric_env
 from ..dns import get_ip
 from . import wait_for_status, AMI_CONFIGS_DIR, get_aws_connection, \
-    get_user_data_tmpl
+    get_user_data_tmpl, get_region_dns_atom
 from .vpc import get_subnet_id, ip_available, get_vpc
 from boto.exception import BotoServerError, EC2ResponseError
 
@@ -70,6 +71,21 @@ def run_instance(region, hostname, config, key_name, user='root',
         sudo("service sshd restart || service ssh restart")
         sudo("sleep 10")
     return instance
+
+
+_puppet_master_cache = {}
+
+
+def pick_puppet_master(masters):
+    """Pick a puppet master randomly, but in a stable fashion.  Given a choice
+    from the same set of masters on a subsequent call, this will return the
+    same master.  This helps to ensure that repeated puppetizations hit the
+    same master every time, preventing crossed wires due to delayed
+    synchronziation between masters."""
+    if masters != _puppet_master_cache.get('masters'):
+        _puppet_master_cache['masters'] = masters[:]
+        _puppet_master_cache['selected'] = random.choice(masters)
+    return _puppet_master_cache['selected']
 
 
 def assimilate_instance(instance, config, ssh_key, instance_data, deploypass,
@@ -141,8 +157,8 @@ def assimilate_instance(instance, config, ssh_key, instance_data, deploypass,
     put(StringIO.StringIO("exit 0\n"),
         "{}/root/post-puppetize-hook.sh".format(chroot))
 
-    puppet_master = random.choice(instance_data["puppet_masters"])
-    log.info("Puppetizing %s, it may take a while...", hostname)
+    puppet_master = pick_puppet_master(instance_data["puppet_masters"])
+    log.info("Puppetizing %s against %s; this may take a while...", hostname, puppet_master)
     run_chroot("env PUPPET_SERVER=%s /root/puppetize.sh" % puppet_master)
 
     if "buildslave_password" in instance_data:
@@ -179,6 +195,7 @@ def assimilate_windows(instance, config, instance_data):
     wait_for_status(instance, 'state', 'running', 'update')
 
 
+@redo.retriable(sleeptime=0, jitter=0, attempts=3)
 def unbundle_hg(hg_bundles):
     log.info("Cloning HG bundles")
     hg = "/tools/python27-mercurial/bin/hg"
@@ -196,6 +213,7 @@ def unbundle_hg(hg_bundles):
     log.info("Unbundling HG repos finished")
 
 
+@redo.retriable(sleeptime=0, jitter=0, attempts=3)
 def unpack_tarballs(tarballs):
     log.info("Unpacking tarballs")
     put("%s/s3-get" % AMI_CONFIGS_DIR, "/tmp/s3-get")
@@ -203,12 +221,14 @@ def unpack_tarballs(tarballs):
         bucket, key = info["bucket"], info["key"]
         sudo("mkdir -p {d}".format(d=dest_dir), user="cltbld")
         with cd(dest_dir):
-            sudo("python /tmp/s3-get -b {bucket} -k {key} -o - | tar xf -".format(
-                 bucket=bucket, key=key), user="cltbld")
+            sudo("python /tmp/s3-get -b {bucket} -k {key} -o - | "
+                 "tar xf - --touch".format(bucket=bucket, key=key),
+                 user="cltbld")
     run("rm -f /tmp/s3-get")
     log.info("Unpacking tarballs finished")
 
 
+@redo.retriable(sleeptime=0, jitter=0, attempts=3)
 def share_repos(hg_repos):
     log.info("Cloning HG repos")
     hg = "/tools/python27-mercurial/bin/hg"
@@ -287,11 +307,13 @@ def create_block_device_mapping(ami, device_map):
     return bdm
 
 
-def user_data_from_template(moz_instance_type, fqdn):
+def user_data_from_template(moz_instance_type, fqdn, region):
     user_data = get_user_data_tmpl(moz_instance_type)
     if user_data:
-        user_data = user_data.format(fqdn=fqdn,
-                                     moz_instance_type=moz_instance_type)
+        user_data = user_data.format(
+            fqdn=fqdn,
+            region_dns_atom=get_region_dns_atom(region),
+            moz_instance_type=moz_instance_type)
 
     return user_data
 

@@ -51,7 +51,6 @@ includes:
           hosts:
             - cruncher.build.mozilla.org
             - {include: slaveapi-servers}
-            - dev-master1.build.mozilla.org
             - aws-manager1.srv.releng.scl3.mozilla.com
             - aws-manager2.srv.releng.scl3.mozilla.com
         - include: admin-access
@@ -76,10 +75,12 @@ includes:
     build-usw2: 10.132.52.0/22
     test-usw2: 10.132.56.0/22
     test2-usw2: 10.132.156.0/22
+    test3-usw2: 10.132.40.0/21
     try-usw2: 10.132.64.0/22
     build-use1: 10.134.52.0/22
     test-use1: 10.134.56.0/22
     test2-use1: 10.134.156.0/22
+    test3-use1: 10.134.40.0/21
     try-use1: 10.134.64.0/22
     slave-vlans:
       - {include: build-scl3}
@@ -92,15 +93,24 @@ includes:
       - {include: build-usw2}
       - {include: test-usw2}
       - {include: test2-usw2}
+      - {include: test3-usw2}
       - {include: try-usw2}
       - {include: build-use1}
       - {include: test-use1}
       - {include: test2-use1}
+      - {include: test3-use1}
       - {include: try-use1}
 
     # and port aliases
     buildbot-http-portrange: 8000-8999
     buildbot-rpc-portrange: 9000-9999
+
+    aws-manager-ssh:
+      proto: tcp
+      ports: [22]
+      hosts:
+        - aws-manager1.srv.releng.scl3.mozilla.com
+        - aws-manager2.srv.releng.scl3.mozilla.com
 
 tests:
     description: security group for test slaves
@@ -176,32 +186,6 @@ buildbot-master:
             - 10.26.68.0/24  # bb.releng.scl3
             - 10.132.68.0/24  # bb.releng.usw2
             - 10.134.68.0/24  # bb.releng.use1
-            # To keep the SG small, we assume that there are only buildmasters
-            # in the AWS srv VLANs (which is mostly true)
-            - 10.132.48.0/22  # srv.releng.usw2
-            - 10.134.48.0/22  # srv.releng.use1
-            # scl3 individual masters (not in the BB VLANs)
-            - buildbot-master81.srv.releng.scl3.mozilla.com
-            - buildbot-master82.srv.releng.scl3.mozilla.com
-            - buildbot-master83.srv.releng.scl3.mozilla.com
-            - buildbot-master84.srv.releng.scl3.mozilla.com
-            - buildbot-master85.srv.releng.scl3.mozilla.com
-            - buildbot-master86.srv.releng.scl3.mozilla.com
-            - buildbot-master87.srv.releng.scl3.mozilla.com
-            - buildbot-master89.srv.releng.scl3.mozilla.com
-            - buildbot-master100.srv.releng.scl3.mozilla.com
-            - buildbot-master101.srv.releng.scl3.mozilla.com
-            - buildbot-master102.srv.releng.scl3.mozilla.com
-            - buildbot-master103.srv.releng.scl3.mozilla.com
-            - buildbot-master104.srv.releng.scl3.mozilla.com
-            - buildbot-master105.srv.releng.scl3.mozilla.com
-            - buildbot-master106.srv.releng.scl3.mozilla.com
-            - buildbot-master107.srv.releng.scl3.mozilla.com
-            - buildbot-master108.srv.releng.scl3.mozilla.com
-            - buildbot-master109.srv.releng.scl3.mozilla.com
-            - buildbot-master110.srv.releng.scl3.mozilla.com
-            - buildbot-master111.srv.releng.scl3.mozilla.com
-            - buildbot-master112.srv.releng.scl3.mozilla.com
 
         # traffic from buildslaves
         - proto: tcp
@@ -209,23 +193,51 @@ buildbot-master:
             - {include: buildbot-rpc-portrange}
           hosts: {include: slave-vlans}
 
-        # ssh access from some automation hosts
-        - proto: tcp
-          ports: [22]
-          hosts:
-            - dev-master1.build.mozilla.org
-            - aws-manager1.srv.releng.scl3.mozilla.com
-            - aws-manager2.srv.releng.scl3.mozilla.com
-
-        # buildbot-http from aws-manager1
+        # buildbot-http from aws-managers and slaveapi
         - proto: tcp
           ports:
             - {include: buildbot-http-portrange}
           hosts:
             - {include: slaveapi-servers}
             - aws-manager1.srv.releng.scl3.mozilla.com
+            - aws-manager2.srv.releng.scl3.mozilla.com
 
         # generic stuff
+        - include: aws-manager-ssh
+        - include: admin-access
+        - include: observium
+        - include: infra-puppetize
+        - include: global-ping
+    outbound:
+        - include: global-any
+
+puppet-master:
+    description: security group for puppet masters
+    regions:
+        us-west-1: vpc-7a7dd613
+        us-west-2: vpc-cd63f2a4
+        us-east-1: vpc-b42100df
+    inbound:
+        - proto: tcp
+          ports: [443, 80, 8140]
+          hosts:
+            - 10.26.0.0/16
+            - 10.130.0.0/16
+            - 10.132.0.0/16
+            - 10.134.0.0/16
+
+        # SSH from other masters
+        - proto: tcp
+          ports: [22]
+          hosts:
+            - releng-puppet1.srv.releng.scl3.mozilla.com
+            - releng-puppet2.srv.releng.scl3.mozilla.com
+            # it'd be nice to be able to reference this SG here, instead
+            - releng-puppet1.srv.releng.use1.mozilla.com
+            - releng-puppet1.srv.releng.usw2.mozilla.com
+
+        # generic stuff
+        - include: aws-manager-ssh
         - include: admin-access
         - include: observium
         - include: infra-puppetize
@@ -276,7 +288,9 @@ proxxy-vpc-use1:
             - {include: build-use1}
             - {include: test-use1}
             - {include: test2-use1}
+            - {include: test3-use1}
             - {include: try-use1}
+        - include: aws-manager-ssh
         - include: admin-access
         - include: observium
         - include: global-ping
@@ -294,9 +308,66 @@ proxxy-vpc-usw2:
             - {include: build-usw2}
             - {include: test-usw2}
             - {include: test2-usw2}
+            - {include: test3-usw2}
             - {include: try-usw2}
+        - include: aws-manager-ssh
         - include: admin-access
         - include: observium
         - include: global-ping
+    outbound:
+        - include: global-any
+
+LogAggregators:
+    description: Group for log aggregators and their load balancer
+    regions:
+        us-west-1: vpc-7a7dd613
+        us-west-2: vpc-cd63f2a4
+        us-east-1: vpc-b42100df
+    inbound:
+        - proto: tcp
+          ports: [1514]
+          hosts:
+            - 10.26.0.0/16
+            - 10.130.0.0/16
+            - 10.132.0.0/16
+            - 10.134.0.0/16
+        - include: aws-manager-ssh
+        - include: admin-access
+        - include: observium
+        - include: global-ping
+    outbound:
+        - include: global-any
+
+VCSSync:
+    description: Group hg/git vcssync servers
+    regions:
+        us-west-1: vpc-7a7dd613
+        us-west-2: vpc-cd63f2a4
+        us-east-1: vpc-b42100df
+    inbound:
+        - include: aws-manager-ssh
+        - include: admin-access
+        - include: observium
+        - include: global-ping
+    outbound:
+        - include: global-any
+
+signing-worker:
+    description: security group for signing workers
+    regions:
+        us-west-1: vpc-7a7dd613
+        us-west-2: vpc-cd63f2a4
+        us-east-1: vpc-b42100df
+    inbound:
+        - proto: tcp
+          ports:
+            - 22  # ssh
+          hosts:
+          - 10.22.240.0/20  # scl3-vpn-net
+        - include: admin-access
+        - include: observium
+        - include: infra-puppetize
+        - include: global-ping
+        - include: aws-manager-ssh
     outbound:
         - include: global-any

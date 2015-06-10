@@ -15,8 +15,7 @@ import os
 import logging
 import yaml
 
-from cfn_pyplates.cli import _find_cloudformationtemplate
-from cfn_pyplates.cli import _load_pyplate
+from cfn_pyplates.core import generate_pyplate
 from cfn_pyplates.options import OptionsMapping
 
 log = logging.getLogger(__name__)
@@ -91,14 +90,16 @@ class Deployer(object):
 
         if create:
             stackid = conn.create_stack(stack_name=stack_name,
-                                        template_body=template_body)
+                                        template_body=template_body,
+                                        capabilities=['CAPABILITY_IAM'])
             event_loop = EventLoop(conn, stackid)
         else:
             event_loop = EventLoop(conn, stackid)
             event_loop.consume_old_events()
             try:
                 stackid = conn.update_stack(stack_name=stack_name,
-                                            template_body=template_body)
+                                            template_body=template_body,
+                                            capabilities=['CAPABILITY_IAM'])
             except boto.exception.BotoServerError as e:
                 # consider this particular error to indicate success
                 if e.message == 'No updates are to be performed.':
@@ -169,9 +170,7 @@ class Deployer(object):
         cfn_pyplates.core.options = options_mapping
 
         # load the template and convert the result to JSON
-        pyplate = _load_pyplate(open(template_path), options_mapping)
-        cft = _find_cloudformationtemplate(pyplate)
-        return unicode(cft)
+        return generate_pyplate(template_path, options_mapping)
 
     def conn(self, region):
         try:

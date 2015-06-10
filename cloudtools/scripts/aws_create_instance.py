@@ -12,7 +12,7 @@ import logging
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 
 from cloudtools.aws import get_aws_connection, get_vpc, \
-    name_available, wait_for_status, get_user_data_tmpl
+    name_available, wait_for_status, get_user_data_tmpl, get_region_dns_atom
 from cloudtools.dns import get_ip, get_ptr
 from cloudtools.aws.instance import assimilate_instance, \
     make_instance_interfaces
@@ -20,7 +20,13 @@ from cloudtools.aws.vpc import get_subnet_id, ip_available
 from cloudtools.aws.ami import ami_cleanup, volume_to_ami, copy_ami, \
     get_ami
 
+from fabric.network import NetworkError
+
 log = logging.getLogger(__name__)
+
+# this needs to be long enough for the puppetmasters to synchronize the issued
+# certificate and its revocation
+FAILURE_TIMEOUT = 60 * 20
 
 
 def verify(hosts, config, region, ignore_subnet_check=False):
@@ -115,6 +121,7 @@ def create_instance(name, config, region, key_name, ssh_key, instance_data,
                     dns_search_domain=config.get('dns_search_domain'),
                     password=deploypass,
                     moz_instance_type=config['type'],
+                    region_dns_atom=get_region_dns_atom(region),
                 )
 
             reservation = conn.run_instances(
@@ -162,11 +169,21 @@ def create_instance(name, config, region, key_name, ssh_key, instance_data,
                                 ssh_key=ssh_key, instance_data=instance_data,
                                 deploypass=deploypass, reboot=reboot)
             break
+        except NetworkError as e:
+            # it takes a while for the machine to start/reboot so the
+            # NetworkError exception is quite common, just log the error,
+            # without the full stack trace
+            log.warn("cannot connect; instance may still be starting  %s (%s, %s) - %s,"
+                     "retrying in %d sec ...", instance_data['hostname'], instance.id,
+                     instance.private_ip_address, e, FAILURE_TIMEOUT)
+            time.sleep(FAILURE_TIMEOUT)
+
         except:
+            # any other exception
             log.warn("problem assimilating %s (%s, %s), retrying in "
-                     "10 sec ...", instance_data['hostname'], instance.id,
-                     instance.private_ip_address, exc_info=True)
-            time.sleep(10)
+                     "%d sec ...", instance_data['hostname'], instance.id,
+                     instance.private_ip_address, FAILURE_TIMEOUT, exc_info=True)
+            time.sleep(FAILURE_TIMEOUT)
         if max_attempts:
             attempt += 1
             keep_going = max_attempts >= attempt
