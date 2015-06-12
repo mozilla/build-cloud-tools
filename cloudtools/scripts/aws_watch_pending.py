@@ -7,6 +7,7 @@ import argparse
 import time
 from collections import defaultdict
 import logging
+import re
 
 try:
     import simplejson as json
@@ -25,14 +26,15 @@ from cloudtools.aws import (get_aws_connection, aws_get_running_instances,
                             jacuzzi_suffix)
 from cloudtools.aws.spot import get_spot_requests_for_moztype, \
     usable_spot_choice, get_available_slave_name, get_spot_choices
-from cloudtools.jacuzzi import filter_instances_by_slaveset
+from cloudtools.jacuzzi import filter_instances_by_slaveset, get_allocated_slaves
 from cloudtools.aws.ami import get_ami, get_spot_amis
 from cloudtools.aws.vpc import get_avail_subnet
-from cloudtools.buildbot import find_pending, map_builders
+from cloudtools.buildbot import find_pending
 from cloudtools.aws.instance import create_block_device_mapping, \
     user_data_from_template, tag_ondemand_instance
 import cloudtools.graphite
 from cloudtools.log import add_syslog_handler
+from cloudtools.utils import get_json
 
 log = logging.getLogger()
 gr_log = cloudtools.graphite.get_graphite_logger()
@@ -403,6 +405,20 @@ def do_request_ondemand_instance(region, price, ami_id, instance_type, ssh_key,
                                  moz_instance_type)
 
 
+def get_instancetype(allthethings, buildername, slavetypes):
+    """
+    Returns the appropriate moz-type for this builder
+    """
+    if buildername not in allthethings['builders']:
+        return None
+
+    slavepool = allthethings['builders'][buildername]['slavepool']
+    slaves = allthethings['slavepools'][slavepool]
+    for t in slavetypes:
+        if slaves[0].startswith(t):
+            return t
+
+
 def aws_watch_pending(dburl, regions, builder_map, region_priorities,
                       spot_config, ondemand_config, dryrun, latest_ami_percentage):
     # First find pending jobs in the db
@@ -416,17 +432,40 @@ def aws_watch_pending(dburl, regions, builder_map, region_priorities,
     log.debug("processing %i pending jobs", len(pending))
     gr_log.add("pending", len(pending))
 
+    # Determine supported slavetypes
+    slavetypes = set(spot_config['rules'].keys())
+    slavetypes |= set(ondemand_config['limits']['global'].keys())
+    log.debug("known slavetypes: %s", slavetypes)
+
     # Mapping of (instance types, slaveset) to # of instances we want to
     # creates
+    to_create_spot = defaultdict(int)
+
     # Map pending builder names to instance types
-    pending_builder_map = map_builders(pending, builder_map)
-    gr_log.add("aws_pending", sum(pending_builder_map.values()))
-    if not pending_builder_map:
+    for pending_buildername, brid in pending:
+        # Check to see if this builder is ignored first
+        if any(re.match(exp, pending_buildername) for exp in ignore_builders):
+            log.debug("ignoring %s", pending_buildername)
+            continue
+
+        try:
+            moz_instance_type = get_instancetype(allthethings, pending_buildername, slavetypes)
+            if moz_instance_type:
+                slaveset = get_allocated_slaves(pending_buildername)
+                to_create_spot[moz_instance_type, slaveset] += 1
+                log.debug("%s instance type %s slaveset %s", pending_buildername, moz_instance_type, slaveset)
+            else:
+                moz_instance_type = None
+                log.debug("%s has pending jobs, but couldn't determine slave type", pending_buildername)
+        except:
+            log.exception("Couldn't handle pending request for %s", pending_buildername)
+            continue
+
+    to_create_ondemand = defaultdict(int)
+
+    if not to_create_spot and not to_create_ondemand:
         log.debug("no pending jobs we can do anything about! all done!")
         return
-
-    to_create_spot = pending_builder_map
-    to_create_ondemand = defaultdict(int)
 
     # For each moz_instance_type, slaveset, find how many are currently
     # running, and scale our count accordingly
@@ -561,10 +600,17 @@ def main():
     config = json.load(args.config)
     secrets = json.load(args.secrets)
 
+    allthethings_url = config['allthethings_url']
+
+    # Try downloading all the things
+    log.info("Downloading %s", allthethings_url)
+    allthethings = get_json(allthethings_url, "allthethings.json")
+
     aws_watch_pending(
         dburl=secrets['db'],
         regions=args.regions,
-        builder_map=config['buildermap'],
+        allthethings=allthethings,
+        ignore_builders=config.get('ignore_builders', []),
         region_priorities=config['region_priorities'],
         dryrun=args.dryrun,
         spot_config=config.get("spot"),
