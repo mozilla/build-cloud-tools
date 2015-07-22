@@ -34,9 +34,9 @@ Set /A elapsed=0
 
 :RUN
 
-IF %elapsed% lss 600 GOTO :COMMAND (
+IF %elapsed% lss 600 GOTO :COMMAND
 
-IF %elapsed% gtr 600 GOTO :WAIT (
+IF %elapsed% gtr 600 GOTO :WAIT
 
 :WAIT
 
