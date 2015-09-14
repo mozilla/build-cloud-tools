@@ -396,14 +396,14 @@ function Disable-Firewall {
     The profile to disable the firewall under. Defaults to CurrentProfile.
   #>
   param (
-    [string] $profile = 'AllProfiles'
+    [string] $profile = 'AllProfiles',
+    [string] $registryKey = 'HKLM:\Software\Policies\Microsoft\WindowsFirewall'
   )
   Write-Log -message 'disabling Windows Firewall' -severity 'INFO'
   $netshArgs = @('advfirewall', 'set', $profile, 'state', 'off')
   & 'netsh' $netshArgs
-  #Set-ItemProperty -path HKLM:\Software\Policies\Microsoft\WindowsFirewall\DomainProfile -name EnableFirewall -value 0
-  #Set-ItemProperty -path HKLM:\Software\Policies\Microsoft\WindowsFirewall\PrivateProfile -name EnableFirewall -value 0
-  #Set-ItemProperty -path HKLM:\Software\Policies\Microsoft\WindowsFirewall\PublicProfile -name EnableFirewall -value 0
-  # setting the keys above has no effect due to a group policy setting. removing the section, has the desired effect.
-  Remove-Item -path HKLM:\Software\Policies\Microsoft\WindowsFirewall -recurse -force
+  if (Test-Path $registryKey){
+    Write-Log -message 'removing Windows Firewall registry entries' -severity 'INFO'
+    Remove-Item -path $registryKey -recurse -force
+  }
 }
