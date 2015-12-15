@@ -168,8 +168,6 @@ def assimilate_instance(instance, config, ssh_key, instance_data, deploypass,
         run_chroot("sudo -u cltbld /tools/buildbot/bin/buildslave create-slave "
                    "/builds/slave {buildbot_master} {name} "
                    "{buildslave_password}".format(**instance_data))
-    if instance_data.get("hg_bundles"):
-        unbundle_hg(instance_data['hg_bundles'])
     if instance_data.get("s3_tarballs"):
         unpack_tarballs(instance_data["s3_tarballs"])
     if instance_data.get("hg_repos"):
@@ -191,24 +189,6 @@ def assimilate_windows(instance, config, instance_data):
     log.info("waiting for instance to start")
     # Wait for the instance to come up
     wait_for_status(instance, 'state', 'running', 'update')
-
-
-@redo.retriable(sleeptime=0, jitter=0, attempts=3)
-def unbundle_hg(hg_bundles):
-    log.info("Cloning HG bundles")
-    hg = "/tools/python27-mercurial/bin/hg"
-    for share, bundle in hg_bundles.iteritems():
-        target_dir = '/builds/hg-shared/%s' % share
-        sudo('rm -rf {d} && mkdir -p {d}'.format(d=target_dir),
-             user="cltbld")
-        sudo('{hg} init {d}'.format(hg=hg, d=target_dir), user="cltbld")
-        hgrc = "[paths]\n"
-        hgrc += "default = https://hg.mozilla.org/%s\n" % share
-        put(StringIO.StringIO(hgrc), '%s/.hg/hgrc' % target_dir)
-        run("chown cltbld: %s/.hg/hgrc" % target_dir)
-        sudo('{hg} -R {d} unbundle {b}'.format(hg=hg, d=target_dir,
-                                               b=bundle), user="cltbld")
-    log.info("Unbundling HG repos finished")
 
 
 @redo.retriable(sleeptime=0, jitter=0, attempts=3)
