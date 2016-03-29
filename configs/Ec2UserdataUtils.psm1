@@ -871,6 +871,81 @@ function Prep-Loaner {
   }
 }
 
+function Prep-Spot {
+  begin {
+    Write-Log -message ("{0} :: Function started" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
+  }
+  process {
+    if (Get-EventLog -logName 'Application' -source 'Userdata' -message 'Prep-Spot :: Function ended' -newest 1 -ErrorAction SilentlyContinue) {
+      Write-Log -message ("{0} :: detected prior run. skipping spot setup" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
+    } else {
+      $mountFolder = ('{0}\slave\test\build' -f $env:SystemDrive) # if this folder exists and is empty and a Z: drive exists, mount the Z: drive to the folder.
+      if ((Test-Path -Path $mountFolder -PathType Container -ErrorAction SilentlyContinue) -and ((Get-ChildItem $mountFolder | Measure-Object).Count -eq 0)) {
+        Mount-DriveAsFolder -driveLetter 'Z' -folder $mountFolder
+      }
+    }
+  }
+  end {
+    Write-Log -message ("{0} :: Function ended" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
+  }
+}
+
+function Get-DiskId {
+  param (
+    [string] $driveLetter
+  )
+  $diskId = -1
+  try {
+    Get-WmiObject -Class Win32_DiskDriveToDiskPartition | % {
+      $dDep = $_.Dependent
+      $p = Get-WmiObject -Class Win32_DiskPartition |  Where-Object { $_.Path.Path -eq $dDep }
+      $d = Get-WmiObject -Class Win32_LogicalDiskToPartition | Where-Object { $_.Antecedent -in $dDep } | % { 
+        $lDep = $_.Dependent
+        Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_.Path.Path -in $lDep }
+      }
+      if (($d -ne $null) -and ($d.DeviceID -ieq $driveLetter)) {
+        $diskId = [Int]::Parse($p.Name.Split(",")[0].Replace("Disk #",""))
+      }
+    }
+  } catch {
+    Write-Log -message ('{0} :: failed to determine disk id for drive: {1}. {2}' -f $($MyInvocation.MyCommand.Name), $driveLetter, $_.Exception) -severity 'ERROR'
+  }
+  return $diskId
+}
+
+function Mount-DriveAsFolder {
+  param (
+    [string] $driveLetter,
+    [string] $folder = ('{0}\old-{1}' -f $env.SystemDrive, $driveLetter.TrimEnd(':').ToLower())
+  )
+  begin {
+    Write-Log -message ("{0} :: Function started" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
+  }
+  process {
+    $diskId = Get-DiskId -driveLetter ('{0}:' -f $driveLetter.TrimEnd(':'))
+    if ($diskId -gt 0) { # 0 is generally SystemDrive and shouldn't be mounted in this way
+      try {
+        $disk = Get-Disk $diskId
+        $disk | Clear-Disk -RemoveData -Confirm:$false
+        $disk | Initialize-Disk -PartitionStyle MBR
+        $disk | New-Partition -UseMaximumSize -MbrType IFS
+        $partition = Get-Partition -DiskNumber $disk.Number
+        $partition | Format-Volume -FileSystem NTFS -Confirm:$false
+        New-Item -ItemType Directory -Force -Path $folder
+        $partition | Add-PartitionAccessPath -AccessPath $folder
+        Write-Log -message ('{0} :: drive: {1} mounted as folder: {2}' -f $($MyInvocation.MyCommand.Name), $driveLetter, $folder) -severity 'INFO'
+      } catch {
+        Write-Log -message ('{0} :: failed to mount drive: {1} as folder: {2}. {3}' -f $($MyInvocation.MyCommand.Name), $driveLetter, $folder, $_.Exception) -severity 'ERROR'
+      }
+    } else {
+      Write-Log -message ('{0} :: partition mount skipped for disk id: {1}' -f $($MyInvocation.MyCommand.Name), $diskId) -severity 'DEBUG'
+    }
+  }
+  end {
+    Write-Log -message ("{0} :: Function ended" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
+  }
+}
+
 function Set-RandomPassword {
   begin {
     Write-Log -message ("{0} :: Function started" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'

@@ -130,6 +130,8 @@ if (!$hostRenamed) {{
     Stop-ComputerWithDelay -reason 'userdata golden run complete'
   }} elseif ($hostname -match "(b|y)-2[0-9]{{3}}-ec2-[a-z].*") {{
     Prep-Loaner -deployPass $deployPass
+  }} elseif ($hostname.Contains("-spot-")) {{
+    Prep-Spot
   }}
 }}
 if (!($hostname.Contains("-spot-"))) {{
