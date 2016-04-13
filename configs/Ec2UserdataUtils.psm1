@@ -872,16 +872,21 @@ function Prep-Loaner {
 }
 
 function Prep-Spot {
+  param (
+    [switch] $force
+  )
   begin {
     Write-Log -message ("{0} :: Function started" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
   }
   process {
-    if (Get-EventLog -logName 'Application' -source 'Userdata' -message 'Prep-Spot :: Function ended' -newest 1 -ErrorAction SilentlyContinue) {
+    if (!$force -and (Get-EventLog -logName 'Application' -source 'Userdata' -message 'Prep-Spot :: Function ended' -newest 1 -ErrorAction SilentlyContinue)) {
       Write-Log -message ("{0} :: detected prior run. skipping spot setup" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
     } else {
-      $mountFolder = ('{0}\slave\test\build' -f $env:SystemDrive) # if this folder exists and is empty and a Z: drive exists, mount the Z: drive to the folder.
-      if ((Test-Path -Path $mountFolder -PathType Container -ErrorAction SilentlyContinue) -and ((Get-ChildItem $mountFolder | Measure-Object).Count -eq 0)) {
-        Mount-DriveAsFolder -driveLetter 'Z' -folder $mountFolder
+      if ($env:ComputerName.ToLower.StartsWith('t-w')) {
+        $mountPath = ('{0}\slave\test\build' -f $env:SystemDrive)
+        if ((Test-Path -Path $mountPath -PathType Container -ErrorAction SilentlyContinue) -and ((Get-ChildItem $mountPath | Measure-Object).Count -eq 0)) {
+          Mount-EphemeralDisks -path $mountPath
+        }
       }
     }
   }
@@ -890,55 +895,35 @@ function Prep-Spot {
   }
 }
 
-function Get-DiskId {
+# this function will not work on instances that have more than one, non-ephemeral disk (eg: c:, d: where both are gp2 or iops).
+# it will likely do nasty things if that is the case.
+function Mount-EphemeralDisks {
   param (
-    [string] $driveLetter
-  )
-  $diskId = -1
-  try {
-    Get-WmiObject -Class Win32_DiskDriveToDiskPartition | % {
-      $dDep = $_.Dependent
-      $p = Get-WmiObject -Class Win32_DiskPartition |  Where-Object { $_.Path.Path -eq $dDep }
-      $d = Get-WmiObject -Class Win32_LogicalDiskToPartition | Where-Object { $_.Antecedent -in $dDep } | % { 
-        $lDep = $_.Dependent
-        Get-WmiObject -Class Win32_LogicalDisk | Where-Object { $_.Path.Path -in $lDep }
-      }
-      if (($d -ne $null) -and ($d.DeviceID -ieq $driveLetter)) {
-        $diskId = [Int]::Parse($p.Name.Split(",")[0].Replace("Disk #",""))
-      }
-    }
-  } catch {
-    Write-Log -message ('{0} :: failed to determine disk id for drive: {1}. {2}' -f $($MyInvocation.MyCommand.Name), $driveLetter, $_.Exception) -severity 'ERROR'
-  }
-  return $diskId
-}
-
-function Mount-DriveAsFolder {
-  param (
-    [string] $driveLetter,
-    [string] $folder = ('{0}\old-{1}' -f $env.SystemDrive, $driveLetter.TrimEnd(':').ToLower())
+    [string] $path = ('{0}\mnt' -f $env.SystemDrive)
   )
   begin {
     Write-Log -message ("{0} :: Function started" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
   }
   process {
-    $diskId = Get-DiskId -driveLetter ('{0}:' -f $driveLetter.TrimEnd(':'))
-    if ($diskId -gt 0) { # 0 is generally SystemDrive and shouldn't be mounted in this way
-      try {
-        $disk = Get-Disk $diskId
-        $disk | Clear-Disk -RemoveData -Confirm:$false
-        $disk | Initialize-Disk -PartitionStyle MBR
-        $disk | New-Partition -UseMaximumSize -MbrType IFS
-        $partition = Get-Partition -DiskNumber $disk.Number
-        $partition | Format-Volume -FileSystem NTFS -Confirm:$false
-        New-Item -ItemType Directory -Force -Path $folder
-        $partition | Add-PartitionAccessPath -AccessPath $folder
-        Write-Log -message ('{0} :: drive: {1} mounted as folder: {2}' -f $($MyInvocation.MyCommand.Name), $driveLetter, $folder) -severity 'INFO'
-      } catch {
-        Write-Log -message ('{0} :: failed to mount drive: {1} as folder: {2}. {3}' -f $($MyInvocation.MyCommand.Name), $driveLetter, $folder, $_.Exception) -severity 'ERROR'
+    $outfile = ('{0}\log\{1}.diskpart.stdout.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
+    $errfile = ('{0}\log\{1}.diskpart.stderr.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
+    $ephemeralVolumeCount = @(Get-WmiObject Win32_Volume | ? { ($_.DriveLetter -and !($_.SystemVolume) -and (-not ($_.DriveLetter -ieq $env:SystemDrive))) }).length
+    $volumeOffset = ($ephemeralVolumeCount - (@(Get-WmiObject Win32_Volume).length))
+    $diskpartscript = @(
+      '',
+      "select volume 1`nremove all dismount`nselect disk 1`nclean`nconvert gpt`ncreate partition primary`nformat quick fs=ntfs`nselect volume 1`nassign mount=C:\mnt",
+      "select disk 1`nclean`nconvert dynamic`nselect disk 2`n clean`nconvert dynamic`ncreate volume stripe disk=1,2`nselect volume $volumeOffset`nformat quick fs=ntfs`nassign mount=C:\mnt"
+    )
+    if (($ephemeralVolumeCount -gt 0) -and ($volumeOffset -gt 0) -and ($ephemeralVolumeCount -lt $diskpartscript.length)) {
+      New-Item -path ('{0}\mnt.dp' -f $env:Temp) -value $diskpartscript[$ephemeralVolumeCount] -itemType file -force
+      Start-Process 'diskpart' -ArgumentList @('/s', ('{0}\mnt.dp' -f $env:Temp)) -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outfile -RedirectStandardError $errfile
+      if (-not ((Get-Item $errfile).length -gt 0kb)) {
+        Write-Log -message ('{0} :: ephemeral volume(s) mounted at {1}. {2}' -f $($MyInvocation.MyCommand.Name), $path, (Get-Content $outfile)) -severity 'INFO'
+      } else {
+        Write-Log -message ("{0} :: failed to mount ephemeral volume(s) at {1}. {2}" -f $($MyInvocation.MyCommand.Name), $path, (Get-Content $errfile)) -severity 'ERROR'
       }
     } else {
-      Write-Log -message ('{0} :: partition mount skipped for disk id: {1}' -f $($MyInvocation.MyCommand.Name), $diskId) -severity 'DEBUG'
+      Write-Log -message ('{0} :: mount skipped. volume count was: {1}' -f $($MyInvocation.MyCommand.Name), $ephemeralVolumeCount) -severity 'DEBUG'
     }
   }
   end {
