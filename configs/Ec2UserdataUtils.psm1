@@ -908,7 +908,7 @@ function Mount-EphemeralDisks {
     $outfile = ('{0}\log\{1}.diskpart.stdout.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
     $errfile = ('{0}\log\{1}.diskpart.stderr.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
     $ephemeralVolumeCount = @(Get-WmiObject Win32_Volume | ? { ($_.DriveLetter -and !($_.SystemVolume) -and (-not ($_.DriveLetter -ieq $env:SystemDrive))) }).length
-    $volumeOffset = ($ephemeralVolumeCount - (@(Get-WmiObject Win32_Volume).length))
+    $volumeOffset = ((@(Get-WmiObject Win32_Volume).length) - $ephemeralVolumeCount)
     $diskpartscript = @(
       '',
       "select volume 1`nremove all dismount`nselect disk 1`nclean`nconvert gpt`ncreate partition primary`nformat quick fs=ntfs`nselect volume 1`nassign mount=C:\mnt",
