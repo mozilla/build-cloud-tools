@@ -9,7 +9,6 @@ from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.networkinterface import NetworkInterfaceSpecification, \
     NetworkInterfaceCollection
 from fabric.api import run, sudo, put
-from fabric.context_managers import cd
 from ..fabric import setup_fabric_env
 from ..dns import get_ip
 from . import wait_for_status, AMI_CONFIGS_DIR, get_aws_connection, \
