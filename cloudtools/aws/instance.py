@@ -5,7 +5,6 @@ import time
 import random
 import StringIO
 import pipes
-import redo
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.networkinterface import NetworkInterfaceSpecification, \
     NetworkInterfaceCollection
