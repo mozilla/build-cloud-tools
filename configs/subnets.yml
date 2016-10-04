@@ -55,6 +55,7 @@ us-east-1:
             name: test
             routing_table: testers
 
+        # sticking with this for now
         10.134.48.0/22:
             name: srv
             routing_table: masters
