@@ -1,6 +1,6 @@
 {
     "us-east-1": {
-        "type": "balrog-worker",
+        "type": "balrogworker",
         "domain": "srv.releng.use1.mozilla.com",
         "ami": "ami-18abe670",
         "subnet_ids": ["subnet-33a98358"],
@@ -9,7 +9,6 @@
         "distro": "centos",
         "ssh_key": "aws-releng",
         "use_public_ip": true,
-        "instance_profile_name": "balrog-worker",
         "device_map": {
             "/dev/xvda": {
                 "delete_on_termination": true,
@@ -19,7 +18,7 @@
             }
         },
         "tags": {
-            "moz-type": "balrog-worker"
+            "moz-type": "balrogworker"
         }
     },
 }

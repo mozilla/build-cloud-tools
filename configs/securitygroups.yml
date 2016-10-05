@@ -555,8 +555,8 @@ signing-worker:
         # TODO: bug 1210137
         - include: global-any
 
-balrog-worker:
-    description: security group for balrogt workers
+balrogworker:
+    description: security group for balrogworkers
     regions:
         us-east-1: vpc-b42100df
     inbound:
@@ -564,7 +564,7 @@ balrog-worker:
           ports:
             - 22  # ssh
           hosts:
-          - 10.22.240.0/20  # TODO: what here?
+          - 10.22.240.0/20
         - include: admin-access
         - include: observium
         - include: opsec-scanner
@@ -572,5 +572,4 @@ balrog-worker:
         - include: global-ping
         - include: aws-manager-ssh
     outbound:
-        # TODO: bug 1210137
         - include: global-any
