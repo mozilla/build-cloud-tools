@@ -152,7 +152,8 @@ def request_spot_instances(all_instances, moz_instance_type, start_count,
     instance_config = load_instance_config(moz_instance_type)
     connections = [get_aws_connection(r) for r in regions]
     product_description = get_product_description(moz_instance_type)
-    spot_choices = get_spot_choices(connections, spot_rules, product_description)
+    spot_choices = get_spot_choices(connections, spot_rules, product_description,
+                                    moz_instance_type=moz_instance_type)
     if not spot_choices:
         log.warn("No spot choices for %s", moz_instance_type)
         return 0
