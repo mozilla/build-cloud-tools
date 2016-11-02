@@ -346,39 +346,3 @@ def get_spot_choices(connections, rules, product_description, start_time=None):
     # sort by self.value
     choices.sort()
     return choices
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format="%(message)s")
-    logging.getLogger("boto").setLevel(logging.INFO)
-    connections = []
-    for region in ['us-west-2', 'us-east-1']:
-        connections.append(get_aws_connection(region))
-    rules = [
-        {
-            "instance_type": "m3.large",
-            "performance_constant": 0.5,
-            "bid_price": 0.10
-        },
-        {
-            "instance_type": "c3.xlarge",
-            "performance_constant": 1,
-            "bid_price": 0.25
-        },
-        {
-            "instance_type": "m3.xlarge",
-            "performance_constant": 1.1,
-            "bid_price": 0.25
-        },
-        {
-            "instance_type": "m3.2xlarge",
-            "performance_constant": 1.4,
-            "bid_price": 0.25
-        },
-        {
-            "instance_type": "c3.2xlarge",
-            "performance_constant": 1.5,
-            "bid_price": 0.25
-        },
-    ]
-    ret = get_spot_choices(connections, rules)
-    print "\n".join(map(str, ret))
