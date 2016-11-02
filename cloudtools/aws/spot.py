@@ -314,8 +314,7 @@ class Spot:
         return cmp(self.value, other.value)
 
 
-def get_spot_choices(connections, rules, product_description, start_time=None,
-                     moz_instance_type=None):
+def get_spot_choices(connections, rules, product_description, start_time=None):
     choices = []
     prices = {}
     for rule in rules:
