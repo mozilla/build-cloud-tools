@@ -155,6 +155,7 @@ def request_spot_instances(all_instances, moz_instance_type, start_count,
     spot_choices = get_spot_choices(connections, spot_rules, product_description)
     if not spot_choices:
         log.warn("No spot choices for %s", moz_instance_type)
+        log.warn("%s - market price too expensive in all available regions", moz_instance_type)
         return 0
 
     to_start = defaultdict(list)
@@ -512,8 +513,9 @@ def aws_watch_pending(dburl, regions, builder_map, region_priorities,
                                        regions, region_priorities,
                                        dryrun)
         count -= started
-        log.debug("%s - started %i instances; need %i",
-                  moz_instance_type, started, count)
+        instance_type = spot_config['rules'][moz_instance_type]['instance_type']
+        log.debug("%s - started %i %s spot instances; need %i",
+                  moz_instance_type, started, instance_type, count
 
 
 def main():
