@@ -515,7 +515,7 @@ def aws_watch_pending(dburl, regions, builder_map, region_priorities,
                                        dryrun)
         count -= started
         log.debug("%s - started %i %s spot instances; need %i",
-                  moz_instance_type, instance_type, count)
+                  moz_instance_type, started, count)
 
 
 def main():
