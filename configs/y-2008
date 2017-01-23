@@ -49,6 +49,7 @@
         "type": "y-2008",
         "domain": "try.releng.usw2.mozilla.com",
         "ami": "ami-6d9a240d",
+
         "subnet_ids": [
             "subnet-ae48dac7",
             "subnet-a348daca",
