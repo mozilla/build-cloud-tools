@@ -25,8 +25,13 @@
                 "delete_on_termination": true,
                 "skip_resize": true,
                 "volume_type": "gp2",
-                "size": 120,
-                "instance_dev": "C:"
+                "size": 40
+            },
+            "xvdb": {
+                "delete_on_termination": true,
+                "skip_resize": true,
+                "volume_type": "gp2",
+                "size": 120
             }
         },
         "tags": {
@@ -57,8 +62,13 @@
                 "delete_on_termination": true,
                 "skip_resize": true,
                 "volume_type": "gp2",
-                "size": 120,
-                "instance_dev": "C:"
+                "size": 40
+            },
+            "xvdb": {
+                "delete_on_termination": true,
+                "skip_resize": true,
+                "volume_type": "gp2",
+                "size": 120
             }
         },
         "tags": {
