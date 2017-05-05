@@ -105,7 +105,8 @@ Import-Module Ec2UserdataUtils
 New-Item -ItemType Directory -Force -Path $logDir
 Set-Ec2ConfigPluginsState
 Set-Timezone
-Disable-Firewall 
+Disable-Firewall
+Disable-Indexing
 Disable-WindowsUpdate
 Install-BasePrerequisites -aggregator $aggregator -domain $domain
 Rename-Admin
