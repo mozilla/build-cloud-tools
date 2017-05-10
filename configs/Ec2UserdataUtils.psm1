@@ -1742,10 +1742,10 @@ function Install-BasePrerequisites {
     [string] $aggregator = 'log-aggregator.srv.releng.use1.mozilla.com',
     [string] $domain = 'releng.use1.mozilla.com'
   )
-  Write-Log -message ("{0} :: installing chocolatey" -f $($MyInvocation.MyCommand.Name)) -severity 'INFO'
-  $chocoUrl = ('http://releng-puppet1.srv.{0}/repos/EXEs/chocolatey' -f $domain.Replace('try.', '').Replace('test.', '').Replace('build.', ''))
-  $env:chocolateyDownloadUrl = ('{0}/chocolatey.0.10.5.nupkg' -f $chocoUrl)
-  Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('{0}/install.ps1' -f $chocoUrl))
+  #Write-Log -message ("{0} :: installing chocolatey" -f $($MyInvocation.MyCommand.Name)) -severity 'INFO'
+  #$chocoUrl = ('http://releng-puppet1.srv.{0}/repos/EXEs/chocolatey' -f $domain.Replace('try.', '').Replace('test.', '').Replace('build.', ''))
+  #$env:chocolateyDownloadUrl = ('{0}/chocolatey.0.10.5.nupkg' -f $chocoUrl)
+  #Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('{0}/install.ps1' -f $chocoUrl))
   Install-RelOpsPrerequisites -aggregator $aggregator
   Enable-CloneBundle
   #Install-MozillaBuildAndPrerequisites
