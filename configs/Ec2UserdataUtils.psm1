@@ -1672,6 +1672,22 @@ function Install-BasePrerequisites {
   # end hacks
 }
 
+function Install-RelOpsPrerequisites {
+  param (
+    [string] $aggregator
+  )
+  Configure-NxLog -aggregator $aggregator
+  #https://bugzilla.mozilla.org/show_bug.cgi?id=1261812
+  if (-not (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\' -Name 'LocalDumps' -ErrorAction SilentlyContinue)) {
+    New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\' -Name 'LocalDumps'
+  }
+  if (-not (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\' -Name 'DontShowUI' -ErrorAction SilentlyContinue)) {
+    New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\' -Type 'DWord' -Name 'DontShowUI' -Value '0x00000001'
+  } else {
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\' -Type 'DWord' -Name 'DontShowUI' -Value '0x00000001'
+  }
+}
+
 function Set-Timezone {
   param (
     [string] $timezone = 'Pacific Standard Time'
