@@ -1680,7 +1680,9 @@ function Install-RelOpsPrerequisites {
   } else {
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\' -Type 'DWord' -Name 'DontShowUI' -Value '0x00000001'
   }
-  Disable-Service -serviceName 'puppet'
+  if (Get-Service "puppet" -ErrorAction SilentlyContinue) {
+    Disable-Service -serviceName 'puppet'
+  }   
 }
 
 function Set-Timezone {
