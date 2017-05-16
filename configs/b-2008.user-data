@@ -133,6 +133,7 @@ if (!($hostname.Contains("-spot-"))) {{
 }}
 if ($env:computerName.contains("spot")) {{
       Prep-spot -force
+      New-Item -ItemType file "C:\opt\prep-spot.semaphore"
 }}
 Move-Item -path $runLog -destination ([IO.Path]::Combine($logDir, ('userdata-run-{{0}}.log' -f [DateTime]::Now.ToString("yyyyMMdd-HHmm"))))-ErrorAction SilentlyContinue
 Move-Item -path $ec2Log -destination ([IO.Path]::Combine($logDir, ('ec2config-run-{{0}}.log' -f [DateTime]::Now.ToString("yyyyMMdd-HHmm"))))-ErrorAction SilentlyContinue
