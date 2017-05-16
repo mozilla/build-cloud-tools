@@ -1655,7 +1655,6 @@ function Install-BasePrerequisites {
     [string] $domain = 'releng.use1.mozilla.com'
   )
   Install-RelOpsPrerequisites -aggregator $aggregator
-  Enable-CloneBundle
   #Install-MozillaBuildAndPrerequisites
   #Install-BuildBot
   #Install-ToolTool
