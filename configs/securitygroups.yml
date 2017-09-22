@@ -15,6 +15,13 @@ includes:
         hosts:
           - 0.0.0.0/0
 
+    vpn-admin-access:
+        proto: tcp
+        ports: [22, 3389, 5900]
+        hosts:
+          - 10.22.240.0/20  # scl3-vpn-net
+          - ssh1.corpdmz.scl3.mozilla.com
+
     # administrative hosts have unrestricted access on all ports
     admin-access:
         proto: -1
@@ -60,14 +67,6 @@ includes:
         - include: admin-access
         - include: observium
         - include: global-ping
-
-    slave-vlan-inbound-loaner:
-        proto: tcp
-        ports: [22, 3389, 5900]
-        hosts:
-          - 10.22.240.0/20  # scl3-vpn-net
-          - ssh1.corpdmz.scl3.mozilla.com
-        - include: slave-vlan-inbound
 
     outbound-http-https:
         proto: tcp
@@ -327,8 +326,8 @@ try:
     outbound:
         include: try-slave-vlan-outbound
 
-loaner:
-    description: security group for test/build/try slave loaners
+loaners:
+    description: secondary security group adds non-release access to test/build/try slave loaners
     regions:
         us-west-1: vpc-7a7dd613
         us-west-2: vpc-cd63f2a4
@@ -338,9 +337,7 @@ loaner:
             tags:
                 - [moz-loaned-to, *]
     inbound:
-        include: slave-vlan-inbound-loaner
-    outbound:
-        include: slave-vlan-outbound
+        include: vpn-admin-access
 
 buildbot-master:
     description: security group for buildbot masters
