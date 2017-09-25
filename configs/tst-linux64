@@ -42,6 +42,7 @@
                        "subnet-ec464a98", "subnet-47a8b830", "subnet-797f5120",
                        "subnet-330bf457", "subnet-5fa8b828"],
         "security_group_ids": ["sg-8b9f7ce4"],
+        "loaner_security_group_ids": ["sg-d1519eac"],
         "instance_type": "m1.medium",
         "distro": "ubuntu",
         "ssh_key": "aws-releng",
