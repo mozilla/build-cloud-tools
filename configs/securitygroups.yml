@@ -332,7 +332,6 @@ loaners:
             - 10.22.240.0/20  # scl3-vpn-net
             - ssh1.corpdmz.scl3.mozilla.com
 
-
 buildbot-master:
     description: security group for buildbot masters
     regions:
