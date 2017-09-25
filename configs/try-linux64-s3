@@ -36,6 +36,7 @@
         "ami": "ami-058ece35",
         "subnet_ids": ["subnet-ae48dac7", "subnet-a348daca", "subnet-a448dacd", "subnet-72b68206"],
         "security_group_ids": ["sg-3aaa095f"],
+        "loaner_security_group_ids": ["sg-d1519eac"],
         "instance_type": "c3.xlarge",
         "distro": "centos",
         "ssh_key": "aws-releng",

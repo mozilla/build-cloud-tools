@@ -30,6 +30,7 @@
         "subnet_ids": ["subnet-a4cba8cd", "subnet-aecba8c7", "subnet-be89a2ca", "subnet-d6cba8bf"],
         "security_group_desc": ["default VPC security group", "windows slaves"],
         "security_group_ids": ["sg-d5617cb9", "sg-84beade6"],
+        "loaner_security_group_ids": ["sg-d1519eac"],
         "instance_type": "m1.medium",
         "distro": "win2012",
         "user_data_file": "configs/tst-win64.user_data",

@@ -44,6 +44,7 @@
         "ami": "ami-a1122691",
         "subnet_ids": ["subnet-b948dad0", "subnet-ba48dad3", "subnet-ed464a99", "subnet-bf48dad6"],
         "security_group_ids": ["sg-d5617cb9"],
+        "loaner_security_group_ids": ["sg-d1519eac"],
         "instance_type": "c3.xlarge",
         "disable_api_termination": true,
         "ssh_key": "aws-releng",
