@@ -15,13 +15,6 @@ includes:
         hosts:
           - 0.0.0.0/0
 
-    vpn-admin-access:
-        proto: tcp
-        ports: [22, 3389, 5900]
-        hosts:
-          - 10.22.240.0/20  # scl3-vpn-net
-          - ssh1.corpdmz.scl3.mozilla.com
-
     # administrative hosts have unrestricted access on all ports
     admin-access:
         proto: -1
@@ -333,7 +326,12 @@ loaners:
         us-west-2: vpc-cd63f2a4
         us-east-1: vpc-b42100df
     inbound:
-        include: vpn-admin-access
+        - proto: tcp
+          ports: [22, 3389, 5900]
+          hosts:
+            - 10.22.240.0/20  # scl3-vpn-net
+            - ssh1.corpdmz.scl3.mozilla.com
+
 
 buildbot-master:
     description: security group for buildbot masters
