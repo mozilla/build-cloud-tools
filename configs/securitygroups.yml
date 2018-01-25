@@ -557,7 +557,7 @@ pushapkworker:
         - include: global-any
 
 shipitworker:
-    description: security group for pushapkworker
+    description: security group for shipitworkers
     regions:
         us-east-1: vpc-b42100df
     inbound:

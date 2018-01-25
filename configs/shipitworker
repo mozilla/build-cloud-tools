@@ -3,7 +3,7 @@
         "type": "shipitworker",
         "domain": "srv.releng.use1.mozilla.com",
         "ami": "ami-4dc07a26",
-        "subnet_ids": ["subnet-33a98358"], // TODO
+        "subnet_ids": ["subnet-33a98358"],
         "security_group_ids": ["sg-e3061897"],
         "instance_type": "t2.micro",
         "distro": "centos",
