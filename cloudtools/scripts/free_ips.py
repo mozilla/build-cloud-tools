@@ -1,9 +1,8 @@
 import random
 import argparse
 import json
-from IPy import IP
 
-from cloudtools.aws import get_vpc
+from cloudtools.aws import get_available_ips
 
 
 def main():
@@ -22,21 +21,8 @@ def main():
     except KeyError:
         parser.error("unknown configuration")
 
-    vpc = get_vpc(args.region)
+    available_ips = get_available_ips(args.region, config)
 
-    interfaces = vpc.get_all_network_interfaces()
-    used_ips = [i.private_ip_address for i in interfaces]
-
-    subnets = vpc.get_all_subnets(subnet_ids=config["subnet_ids"])
-    blocks = [s.cidr_block for s in subnets]
-
-    available_ips = []
-    for b in blocks:
-        # skip first 5 IPs (they are sometimes "reserved") and the last one
-        # (broadcast)
-        for ip in list(IP(b))[4:-1]:
-            if str(ip) not in used_ips:
-                available_ips.append(ip)
     sample = random.sample(available_ips, args.number)
     for ip in sample:
         print ip

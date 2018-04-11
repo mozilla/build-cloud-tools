@@ -11,6 +11,7 @@ from boto.s3.connection import S3Connection
 from boto.exception import BotoServerError
 from repoze.lru import lru_cache
 from fabric.api import run
+from IPy import IP
 
 log = logging.getLogger(__name__)
 AMI_CONFIGS_DIR = os.path.join(os.path.dirname(__file__), "../../ami_configs")
@@ -289,3 +290,24 @@ def retry_aws_request(callable, *args, **kwargs):
             raise
     else:
         raise Exception("Exceeded retries")
+
+
+def get_available_ips(region, config):
+    """
+    """
+    vpc = get_vpc(region)
+
+    interfaces = vpc.get_all_network_interfaces()
+    used_ips = [i.private_ip_address for i in interfaces]
+
+    subnets = vpc.get_all_subnets(subnet_ids=config["subnet_ids"])
+    blocks = [s.cidr_block for s in subnets]
+
+    available_ips = []
+    for b in blocks:
+        # skip first 5 IPs (they are sometimes "reserved") and the last one
+        # (broadcast)
+        for ip in list(IP(b))[4:-1]:
+            if str(ip) not in used_ips:
+                available_ips.append(ip)
+    return available_ips
