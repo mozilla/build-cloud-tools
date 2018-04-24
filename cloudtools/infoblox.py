@@ -73,11 +73,16 @@ _PTR_FIELDS = [
 ]
 
 
-def write_cnames(file, cnames):
-    writer = csv.DictWriter(file, fieldnames=_CNAME_FIELDS, lineterminator='\n')
-    writer.writeheader()
+def write_files(file, cnames, hosts):
+    cname_writer = csv.DictWriter(file, fieldnames=_CNAME_FIELDS, lineterminator='\n')
+    cname_writer.writeheader()
+    a_writer = csv.DictWriter(file, fieldnames=_A_FIELDS, lineterminator='\n')
+    a_writer.writeheader()
+    ptr_writer = csv.DictWriter(file, fieldnames=_PTR_FIELDS, lineterminator='\n')
+    ptr_writer.writeheader()
+
     for cname, target in cnames.items():
-        writer.writerow({
+        cname_writer.writerow({
             'header-cnamerecord': 'cnamerecord',
             'fqdn*': target,
             'canonical_name': cname,
@@ -86,13 +91,8 @@ def write_cnames(file, cnames):
             'disabled': 'FALSE',
             'view': 'Private',
         })
-
-
-def write_a(file, hosts):
-    writer = csv.DictWriter(file, fieldnames=_A_FIELDS, lineterminator='\n')
-    writer.writeheader()
     for name, ip in hosts.items():
-        writer.writerow({
+        a_writer.writerow({
             'header-hostrecord': 'hostrecord',
             'fqdn*': name,
             'addresses': ip,
@@ -107,13 +107,7 @@ def write_a(file, hosts):
             'use_snmpv3_credential': False,
             'view': 'Private',
         })
-
-
-def write_ptr(file, hosts):
-    writer = csv.DictWriter(file, fieldnames=_PTR_FIELDS, lineterminator='\n')
-    writer.writeheader()
-    for name, ip in hosts.items():
-        writer.writerow({
+        ptr_writer.writerow({
             'header-hostaddress': 'hostaddress',
             'address*': ip,
             'parent*': name,

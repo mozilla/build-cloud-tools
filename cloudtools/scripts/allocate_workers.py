@@ -41,15 +41,8 @@ def main():
         hosts[fqdn] = available_ips[region].pop()
         cnames[cname] = fqdn
 
-    with open('{}.cnames.csv'.format(args.output), 'w') as f:
-        infoblox.write_cnames(f, cnames)
-
-    with open('{}.a.csv'.format(args.output), 'w') as f:
-        infoblox.write_a(f, hosts)
-
-    with open('{}.ptr.csv'.format(args.output), 'w') as f:
-        infoblox.write_ptr(f, hosts)
-
+    with open('{}.csv'.format(args.output), 'w') as f:
+        infoblox.write_files(f, cnames, hosts)
 
 if __name__ == "__main__":
     main()
