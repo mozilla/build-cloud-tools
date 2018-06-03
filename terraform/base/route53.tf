@@ -122,6 +122,19 @@ resource "aws_route53_record" "heroku-coverage-cname-stage" {
     records = ["coverage.staging.moz.tools.herokudns.com"]
 }
 
+#############################
+##  moz.tools other cnames ##
+#############################
+
+resource "aws_route53_record" "relman-ci-moz-tools-cname-prod" {
+    zone_id = "${aws_route53_zone.moztools.zone_id}"
+    name = "relman-ci.moz.tools"
+    type = "CNAME"
+    ttl = "180"
+    records = ["ec2-35-180-75-156.eu-west-3.compute.amazonaws.com"]
+}
+
+
 #########################################
 ## Heroku Shipit production app cnames ##
 #########################################
