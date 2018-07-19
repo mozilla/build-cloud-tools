@@ -939,8 +939,36 @@ function Prep-Spot {
     Write-Log -message ("{0} :: Function ended" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
   }
 }
-# this function will not work on instances that have more than one, non-ephemeral disk (eg: c:, d: where both are gp2 or iops).
-# it will likely do nasty things if that is the case.
+
+function Run-DiskPart {
+  param (
+    [string] $script
+  )
+  begin {
+    Write-Log -message ('{0} :: Function started' -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
+  }
+  process {
+    $outfile = ('{0}\log\{1}.diskpart.stdout.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
+    $errfile = ('{0}\log\{1}.diskpart.stderr.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
+
+    New-Item -path ('{0}\mnt.dp' -f $env:Temp) -value $script -itemType file -force
+    Start-Process 'diskpart' -ArgumentList @('/s', ('{0}\mnt.dp' -f $env:Temp)) -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outfile -RedirectStandardError $errfile
+
+    if (-not ((Get-Item $errfile).length -gt 0kb)) {
+      return $true
+    } else {
+      return $false
+    }
+  }
+  end {
+    Write-Log -message ('{0} :: Function ended' -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
+  }
+}
+
+# This function will only work on instances with 1 or 2 non-system volumes.
+# If there is a single non-system volume, it will be wiped and mounted.
+# If there are 2 non-system volumes, they will be wiped and mounted as a striped volume.
+# Nothing happens for all other counts.
 function Mount-EphemeralDisks {
   param (
     [string] $path = ('{0}\mnt' -f $env.SystemDrive)
@@ -949,25 +977,31 @@ function Mount-EphemeralDisks {
     Write-Log -message ("{0} :: Function started" -f $($MyInvocation.MyCommand.Name)) -severity 'DEBUG'
   }
   process {
-    $outfile = ('{0}\log\{1}.diskpart.stdout.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
-    $errfile = ('{0}\log\{1}.diskpart.stderr.log' -f $env:SystemDrive, [DateTime]::Now.ToString("yyyyMMddHHmmss"))
-    $ephemeralVolumeCount = @(Get-WmiObject Win32_Volume | ? { ($_.DriveLetter -and !($_.SystemVolume) -and (-not ($_.DriveLetter -ieq $env:SystemDrive))) }).length
-    $volumeOffset = ((@(Get-WmiObject Win32_Volume).length) - $ephemeralVolumeCount)
-    $diskpartscript = @(
-      '',
-      "select volume 1`nremove all dismount`nselect disk 1`nclean`nconvert gpt`ncreate partition primary`nformat quick fs=ntfs`nselect volume 1`nassign mount=$mountPath",
-      "select disk 1`nclean`nconvert dynamic`nselect disk 2`n clean`nconvert dynamic`ncreate volume stripe disk=1,2`nselect volume $volumeOffset`nformat quick fs=ntfs`nassign mount=$mountPath"
-    )
-    if (($ephemeralVolumeCount -gt 0) -and ($volumeOffset -gt 0) -and ($ephemeralVolumeCount -lt $diskpartscript.length)) {
-      New-Item -path ('{0}\mnt.dp' -f $env:Temp) -value $diskpartscript[$ephemeralVolumeCount] -itemType file -force
-      Start-Process 'diskpart' -ArgumentList @('/s', ('{0}\mnt.dp' -f $env:Temp)) -Wait -NoNewWindow -PassThru -RedirectStandardOutput $outfile -RedirectStandardError $errfile
-      if (-not ((Get-Item $errfile).length -gt 0kb)) {
-        Write-Log -message ('{0} :: ephemeral volume(s) mounted at {1}. {2}' -f $($MyInvocation.MyCommand.Name), $path, (Get-Content $outfile)) -severity 'INFO'
+    $extraVolumeCount = @(Get-WmiObject Win32_Volume | ? { ($_.DriveLetter -and !($_.SystemVolume) -and (-not ($_.DriveLetter -ieq $env:SystemDrive))) }).length
+    $volumeOffset = ((@(Get-WmiObject Win32_Volume).length) - $extraVolumeCount)
+
+    if ($extraVolumeCount -eq 0) {
+      Write-Log -message ('{0} :: mount skipped; no non-system volumes' -f $($MyInvocation.MyCommand.Name) -severity 'INFO'
+    }
+    elseif ($extraVolumeCount -gt 2) {
+      Write-Log -message ('{0} :: mount skipped; unsupported non-system volume count {1}' -f $($MyInvocation.MyCommand.Name), $extraVolumeCount) -severity 'INFO'
+    }
+    elseif ($extraVolumeCount -eq 1) {
+      if (Run-DiskPart "select volume 1`nremove all dismount`nselect disk 1`nclean`nconvert gpt`ncreate partition primary`nformat quick fs=ntfs`nselect volume 1`nassign mount=$mountPath") {
+        Write-Log -message ('{0} :: mounted single extra volume at {1}: {2}' -f $($MyInvocation.MyCommand.Name), $mountPath) -severity 'INFO'
       } else {
-        Write-Log -message ("{0} :: failed to mount ephemeral volume(s) at {1}. {2}" -f $($MyInvocation.MyCommand.Name), $path, (Get-Content $errfile)) -severity 'ERROR'
+        Write-Log -message ('{0} :: failed to mount single extra volume' -f $($MyInvocation.MyCommand.Name)) -severity 'INFO'
+      }
+    }
+    # This is a holdover from the days when these were always-present ephemeral volumes.
+    elseif $(extraVolumeCount -eq 2) {
+      if (Run-DiskPart "select disk 1`nclean`nconvert dynamic`nselect disk 2`n clean`nconvert dynamic`ncreate volume stripe disk=1,2`nselect volume $volumeOffset`nformat quick fs=ntfs`nassign mount=$mountPath") {
+        Write-Log -message ('{0} :: mounted 2 extra volumes as stripe mount {1}: {2}' -f $($MyInvocation.MyCommand.Name), $mountPath) -severity 'INFO'
+      } else {
+        Write-Log -message ('{0} :: failed to strip mount 2 extra volumes' -f $($MyInvocation.MyCommand.Name)) -severity 'INFO'
       }
     } else {
-      Write-Log -message ('{0} :: mount skipped. volume count was: {1}' -f $($MyInvocation.MyCommand.Name), $ephemeralVolumeCount) -severity 'DEBUG'
+      Write-Log -message ('{0} :: mount skipped. volume count was: {1}' -f $($MyInvocation.MyCommand.Name), extraVolumeCount) -severity 'DEBUG'
     }
   }
   end {
