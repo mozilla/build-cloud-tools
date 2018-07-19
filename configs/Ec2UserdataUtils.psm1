@@ -675,6 +675,11 @@ function Disable-Firewall {
   Disable-Service -serviceName 'WinDefend'
 }
 
+# Disables indexing on all disk volumes (for performance).
+function Disable-Indexing {
+  Get-WmiObject Win32_Volume -Filter "IndexingEnabled=$true" | Set-WmiInstance -Arguments @{IndexingEnabled=$false}
+}
+
 function Flush-EventLog {
   <#
   .Synopsis
