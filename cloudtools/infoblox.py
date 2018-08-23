@@ -84,8 +84,8 @@ def write_files(file, cnames, hosts):
     for cname, target in cnames.items():
         cname_writer.writerow({
             'header-cnamerecord': 'cnamerecord',
-            'fqdn*': target,
-            'canonical_name': cname,
+            'fqdn*': cname,
+            'canonical_name': target,
             'creator': 'STATIC',
             'ddns_protected': 'FALSE',
             'disabled': 'FALSE',

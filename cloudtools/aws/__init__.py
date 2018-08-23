@@ -13,6 +13,8 @@ from repoze.lru import lru_cache
 from fabric.api import run
 from IPy import IP
 
+from cloudtools.dns import get_ptr
+
 log = logging.getLogger(__name__)
 AMI_CONFIGS_DIR = os.path.join(os.path.dirname(__file__), "../../ami_configs")
 INSTANCE_CONFIGS_DIR = os.path.join(os.path.dirname(__file__), "../../configs")
@@ -308,6 +310,11 @@ def get_available_ips(region, config):
         # skip first 5 IPs (they are sometimes "reserved") and the last one
         # (broadcast)
         for ip in list(IP(b))[4:-1]:
-            if str(ip) not in used_ips:
-                available_ips.append(ip)
+            if str(ip) in used_ips:
+                continue
+            host = get_ptr(str(ip))
+            if host:
+                log.debug("Skipping already allocated address {}: maps to {}".format(ip, host))
+                continue
+            available_ips.append(ip)
     return available_ips
