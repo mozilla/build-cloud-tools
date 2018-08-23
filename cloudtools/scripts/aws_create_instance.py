@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 # this needs to be long enough for the puppetmasters to synchronize the issued
 # certificate and its revocation
-FAILURE_TIMEOUT = 60 * 20
+DEFAULT_ASSIMILATE_TIMEOUT = 60 * 20
 
 
 def verify(hosts, config, region, ignore_subnet_check=False):
@@ -68,7 +68,7 @@ def verify(hosts, config, region, ignore_subnet_check=False):
 
 def create_instance(name, config, region, key_name, ssh_key, instance_data,
                     deploypass, loaned_to, loan_bug, create_ami,
-                    ignore_subnet_check, max_attempts):
+                    ignore_subnet_check, max_attempts, assimilate_timeout):
     """Creates an AMI instance with the given name and config. The config must
     specify things like ami id."""
     conn = get_aws_connection(region)
@@ -180,15 +180,15 @@ def create_instance(name, config, region, key_name, ssh_key, instance_data,
             # without the full stack trace
             log.warn("cannot connect; instance may still be starting  %s (%s, %s) - %s,"
                      "retrying in %d sec ...", instance_data['hostname'], instance.id,
-                     instance.private_ip_address, e, FAILURE_TIMEOUT)
-            time.sleep(FAILURE_TIMEOUT)
+                     instance.private_ip_address, e, assimilate_timeout)
+            time.sleep(assimilate_timeout)
 
         except:  # noqa: E722
             # any other exception
             log.warn("problem assimilating %s (%s, %s), retrying in "
                      "%d sec ...", instance_data['hostname'], instance.id,
-                     instance.private_ip_address, FAILURE_TIMEOUT, exc_info=True)
-            time.sleep(FAILURE_TIMEOUT)
+                     instance.private_ip_address, assimilate_timeout, exc_info=True)
+            time.sleep(assimilate_timeout)
         if max_attempts:
             attempt += 1
             keep_going = max_attempts >= attempt
@@ -234,7 +234,8 @@ class LoggingProcess(multiprocessing.Process):
 
 def make_instances(names, config, region, key_name, ssh_key, instance_data,
                    deploypass, loaned_to, loan_bug, create_ami,
-                   ignore_subnet_check, max_attempts):
+                   ignore_subnet_check, max_attempts, assimilate_timeout,
+                   ):
     """Create instances for each name of names for the given configuration"""
     procs = []
     for name in names:
@@ -243,7 +244,8 @@ def make_instances(names, config, region, key_name, ssh_key, instance_data,
                            args=(name, config, region, key_name, ssh_key,
                                  instance_data, deploypass, loaned_to,
                                  loan_bug, create_ami, ignore_subnet_check,
-                                 max_attempts),
+                                 max_attempts, assimilate_timeout,
+                                 ),
                            )
         p.start()
         procs.append(p)
@@ -286,6 +288,8 @@ def main():
     parser.add_argument("--max-attempts",
                         help="The number of attempts to try after each failure"
                         )
+    parser.add_argument("--assimilate_timeout", default=DEFAULT_ASSIMILATE_TIMEOUT,
+                        help="How long to wait between assimilation attempts.")
 
     args = parser.parse_args()
 
@@ -312,7 +316,9 @@ def main():
                    loaned_to=args.loaned_to, loan_bug=args.bug,
                    create_ami=args.create_ami,
                    ignore_subnet_check=args.ignore_subnet_check,
-                   max_attempts=args.max_attempts)
+                   max_attempts=args.max_attempts,
+                   assimilate_timeout=args.assimilate_timeout,
+                   )
     for r in args.copy_to_regions:
         ami = get_ami(region=args.region, moz_instance_type=config["type"])
         log.info("Copying %s (%s) to %s", ami.id, ami.tags.get("Name"), r)
