@@ -30,8 +30,8 @@ includes:
         proto: tcp
         ports: [5666]
         hosts:
-          - nagios1.private.releng.scl3.mozilla.com
           - nagios1.private.releng.mdc1.mozilla.com
+          - nagios1.private.releng.mdc2.mozilla.com
 
     # all slave VLANs look the same
     slave-vlan-inbound:
@@ -383,8 +383,8 @@ puppet-master:
             - 10.130.0.0/16
             - 10.132.0.0/16
             - 10.134.0.0/16
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
+            - nagios1.private.releng.mdc2.mozilla.com
 
         # Only distinguished masters need inbound ssh from other masters
 
@@ -433,8 +433,8 @@ proxxy-vpc-use1:
             - {include: test5-use1}
             - {include: try-use1}
             - {include: try2-use1}
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
+            - nagios1.private.releng.mdc2.mozilla.com
         - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
@@ -457,8 +457,8 @@ proxxy-vpc-usw2:
             - {include: test3-usw2}
             - {include: test4-usw2}
             - {include: try-usw2}
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
+            - nagios1.private.releng.mdc2.mozilla.com
         - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
@@ -481,8 +481,8 @@ LogAggregators:
             - 10.130.0.0/16
             - 10.132.0.0/16
             - 10.134.0.0/16
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
+            - nagios1.private.releng.mdc2.mozilla.com
         - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
