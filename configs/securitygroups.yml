@@ -19,8 +19,6 @@ includes:
         proto: tcp
         ports: [22, 3389, 5900]
         hosts:
-          - rejh1.srv.releng.scl3.mozilla.com  # 10.26.48.19
-          - rejh2.srv.releng.scl3.mozilla.com  # 10.26.48.20
           - rejh1.srv.releng.mdc1.mozilla.com  # 10.49.48.100
           - rejh2.srv.releng.mdc1.mozilla.com  # 10.49.48.101
           - rejh1.srv.releng.mdc2.mozilla.com  # 10.51.48.100
@@ -30,19 +28,8 @@ includes:
         proto: tcp
         ports: [5666]
         hosts:
-          - nagios1.private.releng.scl3.mozilla.com
           - nagios1.private.releng.mdc1.mozilla.com
-
-    # all slave VLANs look the same
-    slave-vlan-inbound:
-        - proto: tcp
-          ports: [22]
-          hosts:
-            - {include: slaveapi-servers}
-            - aws-manager1.srv.releng.scl3.mozilla.com
-            - aws-manager2.srv.releng.scl3.mozilla.com
-        - include: jumphost-admin-access
-        - include: global-ping
+          - nagios1.private.releng.mdc2.mozilla.com
 
     outbound-http-https:
         proto: tcp
@@ -175,17 +162,7 @@ includes:
     slave-vlan-outbound:
         - include: global-any
 
-    # host set aliases:
-    slaveapi-servers: 10.26.48.16/31
-
     # network aliases:
-    build-scl3: 10.26.52.0/22
-    test-scl3: 10.26.56.0/22
-    try-scl3: 10.26.64.0/22
-    winbuild-scl3: 10.26.36.0/22
-    wintest-scl3: 10.26.40.0/22
-    wintry-scl3: 10.26.44.0/22
-    pods-scl3: 10.26.128.0/17
     build-usw2: 10.132.52.0/22
     test-usw2: 10.132.56.0/22
     test2-usw2: 10.132.156.0/22
@@ -202,13 +179,6 @@ includes:
     try-use1: 10.134.64.0/22
     try2-use1: 10.134.165.0/24
     slave-vlans:
-      - {include: build-scl3}
-      - {include: test-scl3}
-      - {include: try-scl3}
-      - {include: winbuild-scl3}
-      - {include: wintest-scl3}
-      - {include: wintry-scl3}
-      - {include: pods-scl3}
       - {include: build-usw2}
       - {include: test-usw2}
       - {include: test2-usw2}
@@ -228,13 +198,6 @@ includes:
     # and port aliases
     buildbot-http-portrange: 8000-8999
     buildbot-rpc-portrange: 9000-9999
-
-    aws-manager-ssh:
-      proto: tcp
-      ports: [22]
-      hosts:
-        - aws-manager1.srv.releng.scl3.mozilla.com
-        - aws-manager2.srv.releng.scl3.mozilla.com
 
 tests:
     description: security group for test slaves
@@ -312,8 +275,6 @@ loaners:
         - proto: tcp
           ports: [22, 3389, 5900]
           hosts:
-            - 10.22.240.0/20  # scl3-vpn-net
-            - ssh1.corpdmz.scl3.mozilla.com
 
 buildbot-master:
     description: security group for buildbot masters
@@ -329,7 +290,6 @@ buildbot-master:
             - {include: buildbot-rpc-portrange}
             - {include: buildbot-http-portrange}
           hosts:
-            - 10.26.68.0/24  # bb.releng.scl3
             - 10.132.68.0/24  # bb.releng.usw2
             - 10.134.68.0/24  # bb.releng.use1
 
@@ -345,10 +305,6 @@ buildbot-master:
             - {include: buildbot-http-portrange}
           hosts:
             - {include: slaveapi-servers}
-            - aws-manager1.srv.releng.scl3.mozilla.com
-            - aws-manager2.srv.releng.scl3.mozilla.com
-            - 10.22.240.0/20  # scl3-vpn-net
-            - ssh1.corpdmz.scl3.mozilla.com
 
         # traffic from buildduty-tools
         - proto: tcp
@@ -359,7 +315,6 @@ buildbot-master:
             - buildduty-tools.srv.releng.usw2.mozilla.com
 
         # generic stuff
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -377,19 +332,15 @@ puppet-master:
         - proto: tcp
           ports: [443, 80, 8140]
           hosts:
-            - 10.26.0.0/16
             - 10.49.0.0/16
             - 10.51.0.0/16
             - 10.130.0.0/16
             - 10.132.0.0/16
             - 10.134.0.0/16
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
-
-        # Only distinguished masters need inbound ssh from other masters
+            - nagios1.private.releng.mdc2.mozilla.com
 
         # generic stuff
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -415,9 +366,8 @@ proxxy-vpc-use1:
             - {include: test5-use1}
             - {include: try-use1}
             - {include: try2-use1}
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
-        - include: aws-manager-ssh
+            - nagios1.private.releng.mdc2.mozilla.com
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -439,9 +389,8 @@ proxxy-vpc-usw2:
             - {include: test3-usw2}
             - {include: test4-usw2}
             - {include: try-usw2}
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
-        - include: aws-manager-ssh
+            - nagios1.private.releng.mdc2.mozilla.com
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -458,14 +407,12 @@ LogAggregators:
     inbound:
         - proto: tcp
           ports: [1514]
-          hosts:
-            - 10.26.0.0/16
+          hosts:            
             - 10.130.0.0/16
             - 10.132.0.0/16
             - 10.134.0.0/16
-            - nagios1.private.releng.scl3.mozilla.com
             - nagios1.private.releng.mdc1.mozilla.com
-        - include: aws-manager-ssh
+            - nagios1.private.releng.mdc2.mozilla.com
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -480,7 +427,6 @@ VCSSync:
         us-west-2: vpc-cd63f2a4
         us-east-1: vpc-b42100df
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -495,7 +441,6 @@ signing-worker:
         us-west-2: vpc-cd63f2a4
         us-east-1: vpc-b42100df
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -508,7 +453,6 @@ addonworker:
     regions:
         us-east-1: vpc-b42100df
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -521,7 +465,6 @@ balrogworker:
         us-east-1: vpc-b42100df
         us-west-2: vpc-cd63f2a4
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -534,7 +477,6 @@ beetmoverworker:
         us-east-1: vpc-b42100df
         us-west-2: vpc-cd63f2a4
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -546,7 +488,6 @@ bouncerworker:
     regions:
         us-east-1: vpc-b42100df
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -558,7 +499,6 @@ pushapkworker:
     regions:
         us-east-1: vpc-b42100df
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -570,7 +510,6 @@ pushsnapworker:
     regions:
         us-east-1: vpc-b42100df
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -582,7 +521,6 @@ shipitworker:
     regions:
         us-east-1: vpc-b42100df
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -595,7 +533,6 @@ binarytransparencyworker:
         us-east-1: vpc-b42100df
         us-west-2: vpc-cd63f2a4
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
@@ -608,7 +545,6 @@ treescriptworker:
         us-east-1: vpc-b42100df
         us-west-2: vpc-cd63f2a4
     inbound:
-        - include: aws-manager-ssh
         - include: jumphost-admin-access
         - include: nagios-nrpe
         - include: global-ping
