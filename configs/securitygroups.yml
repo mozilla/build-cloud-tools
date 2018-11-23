@@ -44,24 +44,6 @@ includes:
             - 192.30.252.0/22 # github (https://api.github.com/meta)
             - 198.145.11.235/32  # codeaurora
 
-    outbound-ssh-upload-build:
-        proto: tcp
-        ports: [22]
-        hosts:
-            - upload.tbirdbld.productdelivery.prod.mozaws.net
-            - upload.tbirdbld.productdelivery.stage.mozaws.net
-            - upload.ffxbld.productdelivery.prod.mozaws.net
-            - upload.ffxbld.productdelivery.stage.mozaws.net
-            - upload.seabld.productdelivery.prod.mozaws.net
-            - upload.seabld.productdelivery.stage.mozaws.net
-
-    outbound-ssh-upload-try:
-        proto: tcp
-        ports: [22]
-        hosts:
-            - upload.trybld.productdelivery.prod.mozaws.net
-            - upload.trybld.productdelivery.stage.mozaws.net
-
     outbound-amqp-amqps:
         proto: tcp
         ports: [5671, 5672]
@@ -124,44 +106,6 @@ includes:
             # Mozilla's public IP space
             - 63.245.208.0/20
 
-    test-slave-vlan-outbound:
-        - include: outbound-mozilla
-        - include: outbound-http-https
-        - include: outbound-git
-        - include: outbound-amqp-amqps
-        - include: outbound-stun-tcp
-        - include: outbound-stun-udp
-        - include: outbound-carbon
-        - include: outbound-ntp
-        - include: global-ping
-
-    try-slave-vlan-outbound:
-        - include: outbound-mozilla
-        - include: outbound-http-https
-        - include: outbound-git
-        - include: outbound-ssh-upload-try
-        - include: outbound-amqp-amqps
-        - include: outbound-stun-tcp
-        - include: outbound-stun-udp
-        - include: outbound-carbon
-        - include: outbound-ntp
-        - include: global-ping
-
-    build-slave-vlan-outbound:
-        - include: outbound-mozilla
-        - include: outbound-http-https
-        - include: outbound-git
-        - include: outbound-ssh-upload-build
-        - include: outbound-amqp-amqps
-        - include: outbound-stun-tcp
-        - include: outbound-stun-udp
-        - include: outbound-carbon
-        - include: outbound-ntp
-        - include: global-ping
-
-    slave-vlan-outbound:
-        - include: global-any
-
     # network aliases:
     build-usw2: 10.132.52.0/22
     test-usw2: 10.132.56.0/22
@@ -199,83 +143,6 @@ includes:
     buildbot-http-portrange: 8000-8999
     buildbot-rpc-portrange: 9000-9999
 
-tests:
-    description: security group for test slaves
-    regions:
-        us-west-1: vpc-7a7dd613
-        us-west-2: vpc-cd63f2a4
-        us-east-1: vpc-b42100df
-    apply-to:
-        instances:
-            tags:
-                - [moz-type, tst-linux*]
-                - [Name, tst-linux*-ec2-*]
-        interfaces:
-            tags:
-                - [moz-type, tst-linux*]
-    inbound:
-        include: slave-vlan-inbound
-    outbound:
-        include: test-slave-vlan-outbound
-
-build:
-    description: security group for build slaves
-    regions:
-        us-west-1: vpc-7a7dd613
-        us-west-2: vpc-cd63f2a4
-        us-east-1: vpc-b42100df
-    apply-to:
-        instances:
-            tags:
-                - [moz-type, bld-linux64]
-                - [moz-type, av-linux64]
-                - [moz-type, b-2008]
-                - [Name, bld-linux64-ec2-*]
-                - [Name, av-linux64-ec2-*]
-                - [Name, b-2008-ec2-*]
-        interfaces:
-            tags:
-                - [moz-type, bld-linux64]
-                - [moz-type, av-linux64]
-                - [moz-type, b-2008]
-    inbound:
-        include: slave-vlan-inbound
-    outbound:
-        include: build-slave-vlan-outbound
-
-try:
-    description: security group for try build slaves
-    regions:
-        us-west-1: vpc-7a7dd613
-        us-west-2: vpc-cd63f2a4
-        us-east-1: vpc-b42100df
-    apply-to:
-        instances:
-            tags:
-                - [moz-type, try-linux64]
-                - [moz-type, y-2008]
-                - [Name, try-linux64-ec2-*]
-                - [Name, y-2008-ec2-*]
-        interfaces:
-            tags:
-                - [moz-type, try-linux64]
-                - [moz-type, y-2008]
-    inbound:
-        include: slave-vlan-inbound
-    outbound:
-        include: try-slave-vlan-outbound
-
-loaners:
-    description: secondary security group adds non-release access to test/build/try slave loaners
-    regions:
-        us-west-1: vpc-7a7dd613
-        us-west-2: vpc-cd63f2a4
-        us-east-1: vpc-b42100df
-    inbound:
-        - proto: tcp
-          ports: [22, 3389, 5900]
-          hosts:
-
 buildbot-master:
     description: security group for buildbot masters
     regions:
@@ -283,37 +150,6 @@ buildbot-master:
         us-west-2: vpc-cd63f2a4
         us-east-1: vpc-b42100df
     inbound:
-        # traffic from other masters
-        - proto: tcp
-          ports:
-            - 22  # ssh
-            - {include: buildbot-rpc-portrange}
-            - {include: buildbot-http-portrange}
-          hosts:
-            - 10.132.68.0/24  # bb.releng.usw2
-            - 10.134.68.0/24  # bb.releng.use1
-
-        # traffic from buildslaves
-        - proto: tcp
-          ports:
-            - {include: buildbot-rpc-portrange}
-          hosts: {include: slave-vlans}
-
-        # buildbot-http from aws-managers and slaveapi
-        - proto: tcp
-          ports:
-            - {include: buildbot-http-portrange}
-          hosts:
-            - {include: slaveapi-servers}
-
-        # traffic from buildduty-tools
-        - proto: tcp
-          ports:
-            - 22  # ssh
-            - {include: buildbot-http-portrange}
-          hosts:
-            - buildduty-tools.srv.releng.usw2.mozilla.com
-
         # generic stuff
         - include: jumphost-admin-access
         - include: nagios-nrpe
