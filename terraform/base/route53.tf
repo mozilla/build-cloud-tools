@@ -28,6 +28,14 @@ resource "aws_route53_record" "relman-clouseau-moz-tools-cname-prod" {
   records = ["clouseau.moz.tools.herokudns.com"]
 }
 
+resource "aws_route53_record" "relman-crash-stop-moz-tools-cname-prod" {
+  zone_id = "${aws_route53_zone.moztools.zone_id}"
+  name = "crash-stop.moz.tools"
+  type = "CNAME"
+  ttl = "180"
+  records = ["morning-coral-p3a1z1w5ahmummjmyi84067l.herokudns.com"]
+}
+
 resource "aws_route53_record" "relman-buildhub-moz-tools-cname-prod" {
   zone_id = "${aws_route53_zone.moztools.zone_id}"
   name = "buildhub.moz.tools"
