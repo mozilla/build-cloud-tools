@@ -243,7 +243,7 @@ LogAggregators:
     inbound:
         - proto: tcp
           ports: [1514]
-          hosts:            
+          hosts:
             - 10.130.0.0/16
             - 10.132.0.0/16
             - 10.134.0.0/16
