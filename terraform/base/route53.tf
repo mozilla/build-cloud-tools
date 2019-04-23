@@ -56,13 +56,13 @@ resource "aws_route53_record" "dockerflow-shipit-api-cname-prod" {
     records = ["prod.shipitapi.prod.cloudops.mozgcp.net"]
 }
 
-resource "aws_route53_record" "dockerflow-shipit-api-cname-prod2" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name= "api.shipit.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["prod.shipitapi.prod.cloudops.mozgcp.net"]
-}
+# resource "aws_route53_record" "dockerflow-shipit-api-cname-prod2" {
+#     zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+#     name= "api.shipit.mozilla-releng.net"
+#     type = "CNAME"
+#     ttl = "180"
+#     records = ["prod.shipitapi.prod.cloudops.mozgcp.net"]
+# }
 
 resource "aws_route53_record" "dockerflow-shipit-api-cname-pre" {
   zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
