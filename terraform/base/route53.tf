@@ -370,7 +370,7 @@ resource "aws_route53_record" "heroku-mapper-cname-prod" {
 
 resource "aws_route53_record" "heroku-mapper-cname-stage" {
     zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "mapper.mozilla-releng.net"
+    name = "stage.mapper.mozilla-releng.net"
     type = "CNAME"
     ttl = "180"
     records = ["stage.mapper.nonprod.cloudops.mozgcp.net"]
@@ -378,7 +378,7 @@ resource "aws_route53_record" "heroku-mapper-cname-stage" {
 
 resource "aws_route53_record" "heroku-mapper-cname-dev" {
     zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "mapper.mozilla-releng.net"
+    name = "dev.mapper.mozilla-releng.net"
     type = "CNAME"
     ttl = "180"
     records = ["dev.mapper.nonprod.cloudops.mozgcp.net"]
