@@ -148,21 +148,6 @@ resource "aws_route53_record" "heroku-tokens-cname-prod" {
     records = ["tokens.mozilla-releng.net.herokudns.com"]
 }
 
-resource "aws_route53_record" "heroku-tooltool-cname-prod" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "tooltool.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["tooltool.mozilla-releng.net.herokudns.com"]
-}
-
-resource "aws_route53_record" "heroku-treestatus-cname-prod" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "treestatus.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["treestatus.mozilla-releng.net.herokudns.com"]
-}
 
 ######################################
 ## Heroku releng staging app cnames ##
@@ -200,22 +185,6 @@ resource "aws_route53_record" "heroku-tokens-cname-stage" {
     records = ["tokens.staging.mozilla-releng.net.herokudns.com"]
 }
 
-resource "aws_route53_record" "heroku-tooltool-cname-stage" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "tooltool.staging.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["tooltool.staging.mozilla-releng.net.herokudns.com"]
-}
-
-resource "aws_route53_record" "heroku-treestatus-cname-stage" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "treestatus.staging.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["treestatus.staging.mozilla-releng.net.herokudns.com"]
-}
-
 ######################################
 ## Heroku releng testing app cnames ##
 ######################################
@@ -242,22 +211,6 @@ resource "aws_route53_record" "heroku-tokens-cname-test" {
     type = "CNAME"
     ttl = "180"
     records = ["tokens.testing.mozilla-releng.net.herokudns.com"]
-}
-
-resource "aws_route53_record" "heroku-tooltool-cname-test" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "tooltool.testing.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["tooltool.testing.mozilla-releng.net.herokudns.com"]
-}
-
-resource "aws_route53_record" "heroku-treestatus-cname-test" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "treestatus.testing.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["treestatus.testing.mozilla-releng.net.herokudns.com"]
 }
 
 #########################################
@@ -356,9 +309,9 @@ resource "aws_route53_record" "heroku-uplift-shipit-cname-test" {
     records = ["uplift.shipit.testing.mozilla-releng.net.herokudns.com"]
 }
 
-##########################################
-## releng services deployed to cloudops ##
-##########################################
+############
+## Mapper ##
+############
 
 resource "aws_route53_record" "heroku-mapper-cname-prod" {
     zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
@@ -382,6 +335,65 @@ resource "aws_route53_record" "heroku-mapper-cname-dev" {
     type = "CNAME"
     ttl = "180"
     records = ["dev.mapper.nonprod.cloudops.mozgcp.net"]
+}
+
+################
+## TreeStatus ##
+################
+
+resource "aws_route53_record" "heroku-treestatus-cname-prod" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "treestatus.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["treestatus.mozilla-releng.net.herokudns.com"]
+    # records = ["prod.treestatus.prod.cloudops.mozgcp.net"]
+}
+
+resource "aws_route53_record" "heroku-treestatus-cname-stage" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "stage.treestatus.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["stage.treestatus.nonprod.cloudops.mozgcp.net"]
+}
+
+resource "aws_route53_record" "heroku-treestatus-cname-dev" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "dev.treestatus.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["dev.treestatus.nonprod.cloudops.mozgcp.net"]
+}
+
+
+##############
+## ToolTool ##
+##############
+
+resource "aws_route53_record" "heroku-tooltool-cname-prod" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "tooltool.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["tooltool.mozilla-releng.net.herokudns.com"]
+    # records = ["prod.tooltool.prod.cloudops.mozgcp.net"]
+}
+
+resource "aws_route53_record" "heroku-tooltool-cname-stage" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "stage.tooltool.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["stage.tooltool.nonprod.cloudops.mozgcp.net"]
+}
+
+resource "aws_route53_record" "heroku-tooltool-cname-dev" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "dev.tooltool.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["dev.tooltool.nonprod.cloudops.mozgcp.net"]
 }
 
 
