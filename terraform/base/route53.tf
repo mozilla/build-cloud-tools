@@ -176,14 +176,6 @@ resource "aws_route53_record" "heroku-coalease-cname-stage" {
     records = ["coalesce.staging.mozilla-releng.net.herokudns.com"]
 }
 
-resource "aws_route53_record" "heroku-mapper-cname-stage" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "mapper.staging.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["mapper.staging.mozilla-releng.net.herokudns.com"]
-}
-
 resource "aws_route53_record" "heroku-notification-identity-cname-stage" {
     zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
     name = "identity.notification.staging.mozilla-releng.net"
@@ -227,14 +219,6 @@ resource "aws_route53_record" "heroku-treestatus-cname-stage" {
 ######################################
 ## Heroku releng testing app cnames ##
 ######################################
-
-resource "aws_route53_record" "heroku-mapper-cname-test" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "mapper.testing.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["mapper.testing.mozilla-releng.net.herokudns.com"]
-}
 
 resource "aws_route53_record" "heroku-notification-identity-cname-test" {
     zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
