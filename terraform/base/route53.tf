@@ -124,14 +124,6 @@ resource "aws_route53_record" "heroku-coalease-cname" {
     records = ["coalesce.mozilla-releng.net.herokudns.com"]
 }
 
-resource "aws_route53_record" "heroku-mapper-cname-prod" {
-    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
-    name = "mapper.mozilla-releng.net"
-    type = "CNAME"
-    ttl = "180"
-    records = ["mapper.mozilla-releng.net.herokudns.com"]
-}
-
 resource "aws_route53_record" "heroku-notification-identity-cname-prod" {
     zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
     name = "identity.notification.mozilla-releng.net"
@@ -379,6 +371,35 @@ resource "aws_route53_record" "heroku-uplift-shipit-cname-test" {
     ttl = "180"
     records = ["uplift.shipit.testing.mozilla-releng.net.herokudns.com"]
 }
+
+##########################################
+## releng services deployed to cloudops ##
+##########################################
+
+resource "aws_route53_record" "heroku-mapper-cname-prod" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "mapper.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["prod.mapper.prod.cloudops.mozgcp.net"]
+}
+
+resource "aws_route53_record" "heroku-mapper-cname-stage" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "mapper.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["stage.mapper.nonprod.cloudops.mozgcp.net"]
+}
+
+resource "aws_route53_record" "heroku-mapper-cname-dev" {
+    zone_id = "${aws_route53_zone.mozilla-releng.zone_id}"
+    name = "mapper.mozilla-releng.net"
+    type = "CNAME"
+    ttl = "180"
+    records = ["dev.mapper.nonprod.cloudops.mozgcp.net"]
+}
+
 
 ############################
 ## CloudFront CDN aliases ##
