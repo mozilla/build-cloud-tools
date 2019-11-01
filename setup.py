@@ -20,7 +20,7 @@ setup(
         'boto==2.27.0',
         'dnspython==1.12.0',
         'docopt==0.6.1',
-        'ecdsa==0.10',
+        'ecdsa==0.13.3',
         'iso8601==0.1.10',
         'netaddr==0.7.12',
         'paramiko==1.12.0',
